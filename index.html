@@ -270,45 +270,17 @@ const CHAR_IMGS = {
 
 const GAS='https://script.google.com/macros/s/AKfycbxFjlFuVsLislzDc_qDcAuxuJ-BsQhExNYCx2Gz47EcdoN6S3Ymqcy4YI6u__2eETwY/exec';
 function sendGAS(d){
-  try {
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', GAS, true);
-    xhr.setRequestHeader('Content-Type', 'text/plain');
-    xhr.onload = function() {
-      console.log('GAS送信完了:', d.gender, 'score:', d.score);
-    };
-    xhr.onerror = function() {
-      console.log('GAS XHR エラー - iframeで再試行');
-      // フォールバック：iframe方式
-      var iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.name = 'gas_iframe_' + Date.now();
-      document.body.appendChild(iframe);
-      
-      var form = document.createElement('form');
-      form.method = 'POST';
-      form.action = GAS;
-      form.target = iframe.name;
-      form.style.display = 'none';
-      
-      var input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'payload';
-      input.value = JSON.stringify(d);
-      form.appendChild(input);
-      
-      document.body.appendChild(form);
-      form.submit();
-      
-      setTimeout(function(){
-        if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        if(form.parentNode) form.parentNode.removeChild(form);
-      }, 5000);
-    };
-    xhr.send(JSON.stringify(d));
-  } catch(e) {
-    console.error('GAS送信エラー:', e);
-  }
+  // まずno-cors POSTを試す（GASはCORSヘッダーを返せないが、データは届く）
+  fetch(GAS, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify(d)
+  }).then(function(){
+    console.log('GAS送信完了:', d.gender, 'score:', d.score);
+  }).catch(function(e){
+    console.error('GAS送信失敗:', e);
+  });
 }
 
 const MPOP=[
