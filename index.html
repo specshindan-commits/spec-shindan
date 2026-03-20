@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>希少性スペック診断</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#ffffff;min-height:100vh;}
+#portal{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem 1rem;background:#ffffff;}
+.logo-img{width:min(320px,85vw);margin-bottom:24px;display:block;mix-blend-mode:normal;}
+.portal-sub{font-size:14px;color:#666;text-align:center;margin-bottom:36px;line-height:1.6;}
+.portal-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;max-width:560px;}
+.portal-card{flex:1;min-width:220px;max-width:260px;padding:28px 20px;border-radius:20px;cursor:pointer;transition:all 0.2s;text-align:center;}
+.portal-card-m{background:linear-gradient(135deg,#1e3a8a,#3b82f6);color:white;}
+.portal-card-f{background:linear-gradient(135deg,#7c3aed,#ec4899);color:white;}
+.portal-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,0.15);}
+.portal-card-emoji{font-size:48px;margin-bottom:12px;}
+.portal-card-label{font-size:18px;font-weight:600;margin-bottom:6px;}
+.portal-card-desc{font-size:12px;opacity:0.85;line-height:1.5;}
+#quiz-m,#quiz-f{display:none;max-width:580px;margin:0 auto;padding:1.5rem 1rem 3rem;background:#ffffff;min-height:100vh;}
+.back-link{font-size:13px;color:#666;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:4px;}
+.hero-title{font-size:21px;font-weight:600;color:#111;margin-bottom:4px;}
+.hero-sub{font-size:13px;color:#666;line-height:1.6;margin-bottom:20px;}
+.progress-bar{height:4px;background:#e5e5e5;border-radius:99px;margin-bottom:1.5rem;overflow:hidden;}
+.pfm{height:100%;background:#3b82f6;border-radius:99px;transition:width 0.4s ease;}
+.pff{height:100%;background:#C084FC;border-radius:99px;transition:width 0.4s ease;}
+.q-block{background:#f9f9f9;border:0.5px solid #e5e5e5;border-radius:16px;padding:18px 20px;margin-bottom:12px;}
+.q-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.q-num{font-size:11px;font-weight:500;color:#666;}
+.q-cat{font-size:11px;padding:2px 8px;border-radius:99px;}
+.mc-money{background:#FAEEDA;color:#854F0B;}.mc-look{background:#FBEAF0;color:#993556;}.mc-life{background:#E1F5EE;color:#0F6E56;}.mc-mind{background:#EEEDFE;color:#3C3489;}.mc-status{background:#E6F1FB;color:#0C447C;}.mc-care{background:#FCE7F3;color:#9D174D;}
+.fc-mind{background:#EEEDFE;color:#6D28D9;}.fc-life{background:#FCE7F3;color:#9D174D;}.fc-care{background:#FDF2F8;color:#BE185D;}.fc-clean{background:#F5F3FF;color:#7C3AED;}.fc-look{background:#FDF4FF;color:#A21CAF;}.fc-money{background:#FAEEDA;color:#854F0B;}.fc-child{background:#FFF0F5;color:#BE185D;}
+.q-title{font-size:15px;font-weight:500;color:#111;margin-bottom:4px;line-height:1.5;}
+.q-hint{font-size:12px;color:#888;margin-bottom:12px;display:flex;align-items:center;gap:4px;}
+.q-hint::before{content:'☑';font-size:13px;}
+.options{display:flex;flex-direction:column;gap:8px;}
+.ob{padding:11px 14px;font-size:14px;text-align:left;background:#f5f5f5;border:0.5px solid #e5e5e5;border-radius:10px;cursor:pointer;color:#111;transition:all 0.15s;line-height:1.4;}
+.obm:hover{border-color:#3b82f6;}.obm.sel{border-color:#3b82f6;background:#EFF6FF;color:#1e3a8a;}
+.obf:hover{border-color:#C084FC;}.obf.sel{border-color:#A855F7;background:#FAF5FF;color:#6D28D9;}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mcol{display:flex;flex-direction:column;gap:8px;}
+/* チェックボックス風マルチボタン */
+.mb{padding:10px 14px;font-size:13px;text-align:left;background:#f5f5f5;border:0.5px solid #e5e5e5;border-radius:10px;cursor:pointer;color:#111;transition:all 0.15s;line-height:1.4;display:flex;align-items:center;gap:10px;}
+.mbm:hover{border-color:#3b82f6;background:#F0F7FF;}.mbm.sel{border-color:#3b82f6;background:#EFF6FF;color:#1e3a8a;}
+.mbf:hover{border-color:#C084FC;background:#FAF5FF;}.mbf.sel{border-color:#A855F7;background:#FAF5FF;color:#6D28D9;}
+.chkbox{width:20px;height:20px;border:2px solid #ccc;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;background:#fff;}
+.mbm.sel .chkbox{background:#3b82f6;border-color:#3b82f6;}
+.mbf.sel .chkbox{background:#A855F7;border-color:#A855F7;}
+.chkmark{display:none;color:white;font-size:13px;font-weight:700;line-height:1;}
+.sel .chkmark{display:block;}
+.cb-label{flex:1;font-size:13px;line-height:1.4;}
+.inf{width:100%;padding:10px 14px;font-size:16px;border:0.5px solid #ccc;border-radius:10px;background:#f5f5f5;color:#111;text-align:center;}
+.inf:focus{outline:none;border-color:#A855F7;}
+.nav{display:flex;gap:10px;margin-top:16px;}
+.nav-btn{flex:1;padding:12px;font-size:14px;font-weight:500;border-radius:12px;cursor:pointer;transition:all 0.15s;}
+.bb{background:transparent;border:0.5px solid #ccc;color:#666;}
+.nm{background:linear-gradient(135deg,#1e3a8a,#3b82f6);border:none;color:#fff;}
+.nf{background:linear-gradient(135deg,#A855F7,#EC4899);border:none;color:#fff;}
+.nm:disabled,.nf:disabled{opacity:0.3;cursor:not-allowed;}
+.result{display:none;max-width:580px;margin:0 auto;padding:1.5rem 1rem 3rem;background:#ffffff;min-height:100vh;}
+.sc{text-align:center;padding:24px 0 16px;}
+.sr{width:160px;height:160px;margin:0 auto 12px;position:relative;}
+.sr svg{width:100%;height:100%;}
+.si{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);}
+.snum{font-size:40px;font-weight:500;color:#111;line-height:1;}
+.su{font-size:12px;color:#666;}
+.rb{display:inline-block;font-size:15px;font-weight:500;padding:6px 20px;border-radius:99px;margin-bottom:6px;}
+.cn{font-size:24px;font-weight:500;margin-bottom:4px;}
+.rc{font-size:14px;color:#666;line-height:1.7;margin-bottom:16px;}
+.pc{border-radius:16px;padding:16px;margin-bottom:16px;text-align:center;}
+.pcm{background:#EFF6FF;border:0.5px solid #BFDBFE;}
+.pcf{background:#FDF4FF;border:0.5px solid #E9D5FF;}
+.plm{font-size:12px;color:#1e3a8a;margin-bottom:4px;}
+.plf{font-size:12px;color:#9333EA;margin-bottom:4px;}
+.pn{font-size:24px;font-weight:500;color:#111;margin-bottom:4px;}
+.ps{font-size:12px;color:#666;line-height:1.6;}
+.axb{border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+.axbm{background:#EFF6FF;border:0.5px solid #BFDBFE;}
+.axbf{background:#FDF4FF;border:0.5px solid #E9D5FF;}
+.axt{font-size:12px;font-weight:600;margin-bottom:10px;}
+.axtm{color:#1e3a8a;}.axtf{color:#7C3AED;}
+.axl{display:flex;flex-wrap:wrap;gap:6px;}
+.axi{display:flex;align-items:center;gap:5px;font-size:12px;color:#111;background:#fff;border-radius:99px;padding:4px 10px;border:0.5px solid #e5e5e5;}
+.axr{font-size:10px;font-weight:600;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.axrm{background:#3b82f6;color:white;}.axrf{background:#A855F7;color:white;}
+.rrow{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:10px;font-size:13px;margin-bottom:4px;}
+.rdot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.stitle{font-size:13px;font-weight:500;color:#666;margin-bottom:10px;padding-bottom:6px;border-bottom:0.5px solid #e5e5e5;}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.bcard{background:#fff;border:0.5px solid #e5e5e5;border-radius:10px;padding:12px;}
+.bbarw{height:6px;background:#e5e5e5;border-radius:99px;overflow:hidden;margin-bottom:4px;}
+.bbar{height:100%;border-radius:99px;transition:width 1s ease;}
+.advi{display:flex;gap:10px;padding:12px;background:#fff;border:0.5px solid #e5e5e5;border-radius:10px;margin-bottom:8px;}
+.advt{font-size:13px;color:#111;line-height:1.6;}
+.xbtn{width:100%;padding:13px;font-size:15px;font-weight:500;background:#000;border:none;border-radius:12px;cursor:pointer;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;}
+.xicn{width:18px;height:18px;fill:#fff;flex-shrink:0;}
+.rtbtn{width:100%;padding:12px;font-size:14px;background:transparent;border:0.5px solid #ccc;border-radius:12px;cursor:pointer;color:#111;margin-bottom:8px;}
+.hbtn{width:100%;padding:12px;font-size:14px;background:transparent;border:0.5px solid #ccc;border-radius:12px;cursor:pointer;color:#666;}
+
+.chara-img{width:300px;height:300px;object-fit:contain;flex-shrink:0;display:block;}
+.score-row{display:flex;flex-direction:row;align-items:center;gap:16px;justify-content:center;margin-bottom:16px;}
+.score-right{display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:8px;align-self:center;}
+.score-right .sr{width:160px;height:160px;}
+.score-right .snum{font-size:36px;}
+#share-card-m,#share-card-f{background:#fff;border-radius:20px;padding:20px;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<div id="portal">
+  <img class="logo-img" src="images/logo.png" alt="希少性スペック診断">
+  <div class="portal-sub">あなたのスペックを採点して<br>日本に何人いるかリアルな数字で見てみよう</div>
+  <div class="portal-cards">
+    <div class="portal-card portal-card-m" onclick="startQuiz('m')">
+      <div class="portal-card-emoji">👨</div>
+      <div class="portal-card-label">男性</div>
+      <div class="portal-card-desc">女性目線で男性スペックを採点<br>婚活市場でのリアルな希少度がわかる</div>
+    </div>
+    <div class="portal-card portal-card-f" onclick="startQuiz('f')">
+      <div class="portal-card-emoji">👩</div>
+      <div class="portal-card-label">女性</div>
+      <div class="portal-card-desc">男性目線で女性スペックを採点<br>恋愛市場でのリアルな希少度がわかる</div>
+    </div>
+  </div>
+</div>
+
+<div id="quiz-m">
+  <span class="back-link" onclick="goHome()">← トップに戻る</span>
+  <div class="hero-title">男性スペック希少度診断</div>
+  <div class="hero-sub">女性目線であなたのスペックを採点。日本に何人いるか、リアルな数字で見てみよう。</div>
+  <div class="progress-bar"><div class="pfm" id="mp" style="width:0%"></div></div>
+  <div id="mcon"></div>
+</div>
+<div id="result-m" class="result">
+  <span class="back-link" onclick="goHome()">← トップに戻る</span>
+  <div id="share-card-m">
+    <div class="score-row">
+      <img id="mcharaimg" class="chara-img" src="" alt="" style="display:none">
+      <div class="score-right">
+        <div class="sr"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" fill="none" stroke="#e5e5e5" stroke-width="10"/><circle id="marc" cx="80" cy="80" r="68" fill="none" stroke="#3b82f6" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 427" transform="rotate(-90 80 80)" style="transition:stroke-dasharray 1.2s ease"/></svg><div class="si"><div class="snum" id="msd">0</div><div class="su">/ 100</div></div></div>
+        <div class="rb" id="mbadge"></div>
+        <div class="cn" id="mcn" style="display:none"></div>
+        <div style="font-size:12px;color:#666;text-align:center" id="mrange"></div>
+      </div>
+    </div>
+    <div class="rc" id="mcom" style="text-align:center;margin-top:8px"></div>
+  </div>
+  <div class="pc pcm"><div class="plm">あなたと同等スペックの男性は日本に</div><div class="pn" id="mpnum"></div><div class="ps" id="mpsub"></div></div>
+  <div class="axb axbm">
+    <div class="axt axtm">💡 女性による男性評価軸（優先度順）</div>
+    <div class="axl">
+      <div class="axi"><span class="axr axrm">1</span>経済力</div>
+      <div class="axi"><span class="axr axrm">2</span>内面・性格</div>
+      <div class="axi"><span class="axr axrm">3</span>外見</div>
+      <div class="axi"><span class="axr axrm">4</span>生活力</div>
+      <div class="axi"><span class="axr axrm">5</span>ステータス</div>
+      <div class="axi"><span class="axr axrm">6</span>相性・気遣い</div>
+    </div>
+  </div>
+  <div class="stitle">ランク一覧（あなたの位置）</div>
+  <div id="mladder" style="margin-bottom:16px"></div>
+  <div class="stitle">カテゴリー別スコア</div>
+  <div class="bgrid" id="mbreak"></div>
+  <div class="stitle">スコアアップのアドバイス</div>
+  <div id="madvice" style="margin-bottom:20px"></div>
+  <button class="xbtn" onclick="shareWithImg('m')" style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);margin-bottom:4px"><svg class="xicn" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.745l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>結果カードを保存してXにシェア</button>
+<button class="xbtn" onclick="shareX('m')">テキストのみXでシェア</button>
+  <button class="rtbtn" onclick="retry('m')">もう一度診断する</button>
+  <button class="hbtn" onclick="goHome()">← トップに戻る</button>
+</div>
+
+<div id="quiz-f">
+  <span class="back-link" onclick="goHome()">← トップに戻る</span>
+  <div class="hero-title">女性スペック希少度診断</div>
+  <div class="hero-sub">男性目線であなたのスペックを採点。日本に何人いるか、リアルな数字で見てみよう。</div>
+  <div class="progress-bar"><div class="pff" id="fp" style="width:0%"></div></div>
+  <div id="fcon"></div>
+</div>
+<div id="result-f" class="result">
+  <span class="back-link" onclick="goHome()">← トップに戻る</span>
+  <div id="share-card-f">
+    <div class="score-row">
+      <img id="fcharaimg" class="chara-img" src="" alt="" style="display:none">
+      <div class="score-right">
+        <div class="sr"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="68" fill="none" stroke="#e5e5e5" stroke-width="10"/><circle id="farc" cx="80" cy="80" r="68" fill="none" stroke="#A855F7" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 427" transform="rotate(-90 80 80)" style="transition:stroke-dasharray 1.2s ease"/></svg><div class="si"><div class="snum" id="fsd">0</div><div class="su">/ 100</div></div></div>
+        <div class="rb" id="fbadge"></div>
+        <div class="cn" id="fcn" style="display:none"></div>
+        <div style="font-size:12px;color:#666;text-align:center" id="frange"></div>
+      </div>
+    </div>
+    <div class="rc" id="fcom" style="text-align:center;margin-top:8px"></div>
+  </div>
+  <div class="pc pcf"><div class="plf">あなたと同等スペックの女性は日本に</div><div class="pn" id="fpnum"></div><div class="ps" id="fpsub"></div></div>
+  <div class="axb axbf">
+    <div class="axt axtf">💡 男性による女性評価軸（優先度順）</div>
+    <div class="axl">
+      <div class="axi"><span class="axr axrf">1</span>外見</div>
+      <div class="axi"><span class="axr axrf">2</span>性格・内面</div>
+      <div class="axi"><span class="axr axrf">3</span>生活力</div>
+      <div class="axi"><span class="axr axrf">4</span>清潔感</div>
+      <div class="axi"><span class="axr axrf">5</span>育児意欲</div>
+      <div class="axi"><span class="axr axrf">6</span>経済力</div>
+      <div class="axi"><span class="axr axrf">7</span>気遣い</div>
+    </div>
+  </div>
+  <div class="stitle">ランク一覧（あなたの位置）</div>
+  <div id="fladder" style="margin-bottom:16px"></div>
+  <div class="stitle">カテゴリー別スコア</div>
+  <div class="bgrid" id="fbreak"></div>
+  <div class="stitle">スコアアップのアドバイス</div>
+  <div id="fadvice" style="margin-bottom:20px"></div>
+  <button class="xbtn" onclick="shareWithImg('f')" style="background:linear-gradient(135deg,#A855F7,#EC4899);margin-bottom:4px"><svg class="xicn" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.745l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>結果カードを保存してXにシェア</button>
+<button class="xbtn" onclick="shareX('f')">テキストのみXでシェア</button>
+  <button class="rtbtn" onclick="retry('f')">もう一度診断する</button>
+  <button class="hbtn" onclick="goHome()">← トップに戻る</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+function shareWithImg(g) {
+  var cardId = g === 'm' ? 'share-card-m' : 'share-card-f';
+  var card = document.getElementById(cardId);
+  if (!card) { shareX(g); return; }
+  
+  html2canvas(card, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    useCORS: true,
+    allowTaint: true
+  }).then(function(canvas) {
+    // 画像をダウンロード
+    var link = document.createElement('a');
+    link.download = 'spec_result.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    
+    // 少し待ってからXを開く
+    setTimeout(function() {
+      shareX(g);
+    }, 500);
+  }).catch(function(e) {
+    console.log('canvas error:', e);
+    shareX(g);
+  });
+}
+</script>
+<script>
+const CHAR_IMGS = {
+  "幻の王子様": "images/chara_legendary_m.png",
+  "神話級の男": "images/chara_mythic_m.png",
+  "ハイスペック侍": "images/chara_ultrarare_m.png",
+  "逃したら後悔する男": "images/chara_rare_m.png",
+  "磨けば光る原石": "images/chara_uncommonp_m.png",
+  "平均の壁を越えた男": "images/chara_uncommon_m.png",
+  "コツコツ型の努力家": "images/chara_normalp_m.png",
+  "どこにでもいる彼氏候補": "images/chara_normal_m.png",
+  "伸びしろしかない男": "images/chara_below_m.png",
+  "まだ何者でもない男": "images/chara_rookie_m.png",
+  "奇跡の天使": "images/chara_legendary_f.png",
+  "高嶺の女神": "images/chara_mythic_f.png",
+  "最強の嫁候補": "images/chara_ultrarare_f.png",
+  "沼落ちさせる女": "images/chara_rare_f.png",
+  "平均超えの隠れ良妻": "images/chara_uncommonp_f.png",
+  "伸び代しかない原石": "images/chara_uncommon_f.png",
+  "ザ・普通の女の子": "images/chara_normalp_f.png",
+  "個性的すぎる女": "images/chara_normal_f.png",
+  "まだ開花前の蕾": "images/chara_below_f.png",
+  "もう少しで完璧な女": "images/chara_rookie_f.png",
+};
+
+const GAS='https://script.google.com/macros/s/AKfycbxFjlFuVsLislzDc_qDcAuxuJ-BsQhExNYCx2Gz47EcdoN6S3Ymqcy4YI6u__2eETwY/exec';
+function sendGAS(d){
+  try {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', GAS, true);
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    xhr.onload = function() {
+      console.log('GAS送信完了:', d.gender, 'score:', d.score);
+    };
+    xhr.onerror = function() {
+      console.log('GAS XHR エラー - iframeで再試行');
+      // フォールバック：iframe方式
+      var iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.name = 'gas_iframe_' + Date.now();
+      document.body.appendChild(iframe);
+      
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = GAS;
+      form.target = iframe.name;
+      form.style.display = 'none';
+      
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'payload';
+      input.value = JSON.stringify(d);
+      form.appendChild(input);
+      
+      document.body.appendChild(form);
+      form.submit();
+      
+      setTimeout(function(){
+        if(iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        if(form.parentNode) form.parentNode.removeChild(form);
+      }, 5000);
+    };
+    xhr.send(JSON.stringify(d));
+  } catch(e) {
+    console.error('GAS送信エラー:', e);
+  }
+}
+
+const MPOP=[
+  {min:90,num:'約520人',sub:'成人男性10万人に1人。東京ドームを成人男性で満員にして10回、やっと1人いるかどうかのレベル。'},
+  {min:80,num:'約52,000人',sub:'成人男性1,000人に1人。47都道府県に平均1,100人。婚活パーティーを何年通い続けても、出会えない可能性の方が高い。'},
+  {min:70,num:'約520,000人',sub:'成人男性100人に1人。一生同じ街に住んでいても、すれ違わないかもしれないレベル。'},
+  {min:60,num:'約2,600,000人',sub:'成人男性20人に1人。満員電車1両に1人か2人いる計算。いそうでなかなか出会えない。'},
+  {min:50,num:'約7,800,000人',sub:'成人男性7人に1人。職場の男性社員30人いれば、4〜5人はいる。平均を確実に超えて上位15%の仲間入り。'},
+  {min:40,num:'約16,000,000人',sub:'成人男性3人に1人。男性5人の飲み会に行けば、1人はいる。平均よりは上だが、差別化が必要。'},
+  {min:30,num:'約26,000,000人',sub:'成人男性のちょうど半分。男性2人に1人。1つの武器を作るだけでUNCOMMONへ届く。'},
+  {min:20,num:'約36,000,000人',sub:'成人男性の70%。男性10人の中で上位3人に入るだけで、ここを抜け出せる。'},
+  {min:10,num:'約46,000,000人',sub:'成人男性の88%がここ以下。1つの項目を本気で改善するだけで、一気に1,000万人を追い抜ける位置にいる。'},
+  {min:0,num:'約52,000,000人',sub:'伝説も、ここから始まった。今日が最初の1歩。'},
+];
+const FPOP=[
+  {min:90,num:'約260人',sub:'成人女性10万人に1人。女性全員が東京ドームを2回埋め尽くしても、このスペックは1人しかいない計算。'},
+  {min:80,num:'約26,000人',sub:'成人女性1,000人に1人。47都道府県に平均550人。マッチングアプリで毎日会って3年やり続けても、たどり着けない可能性がある。'},
+  {min:70,num:'約260,000人',sub:'成人女性100人に1人。同じ街に住んでいてもすれ違わないかもしれないレベル。'},
+  {min:60,num:'約1,300,000人',sub:'成人女性20人に1人。女性20人の職場や学校のクラスに、1人いるかいないか。'},
+  {min:50,num:'約3,900,000人',sub:'成人女性7人に1人。女性30人の婚活パーティに4〜5人はいる計算。出会えそうで、なかなか出会えない。'},
+  {min:40,num:'約7,800,000人',sub:'成人女性3人に1人。女性10人の集まりに3人はいる計算。平均より上だが、もう一押しで希少価値が高まる。'},
+  {min:30,num:'約13,000,000人',sub:'成人女性のちょうど半分。女性2人に1人。1つの強みを磨くだけでUNCOMMONへ届く。'},
+  {min:20,num:'約18,000,000人',sub:'成人女性の70%がここ以下。女性10人の中で上位3人に入るだけで、ここを抜け出せる。'},
+  {min:10,num:'約23,000,000人',sub:'成人女性の88%がここ以下。1つの項目を本気で伸ばすだけで、一気に数百万人を追い抜ける位置にいる。'},
+  {min:0,num:'約26,000,000人',sub:'すべての花は蕾から始まる。開花のタイミングはあなたが決める。'},
+];
+function getPop(s,g){return(g==='m'?MPOP:FPOP).find(r=>s>=r.min)||(g==='m'?MPOP:FPOP).slice(-1)[0];}
+
+const RKM=[
+  {min:90,emoji:'👑',cn:'幻の王子様',lb:'LEGENDARY',co:'#92700A',bg:'#FEF3C7',cm:'これは本物の伝説です。地球上を探しても片手で数えられるかどうかというレベル。存在そのものが都市伝説化しているスペックの持ち主。あなたに出会えた人間は、前世でよほどの徳を積んだに違いありません。',sx:'あなたの彼氏は何キャラ？気になる男性にやらせてみて！'},
+  {min:80,emoji:'💎',cn:'神話級の男',lb:'MYTHIC',co:'#6D28D9',bg:'#EDE9FE',cm:'婚活市場の最上位層。ほぼすべての女性が「理想の男性像」として思い描くスペックをリアルに体現している存在。出会えること自体が奇跡に近い。',sx:'あなたの彼氏は何キャラ？気になる男性にやらせてみて！'},
+  {min:70,emoji:'🔥',cn:'ハイスペック侍',lb:'ULTRA RARE',co:'#1e40af',bg:'#DBEAFE',cm:'仕事も外見も中身も三拍子揃った現代の武士。上位数%に入る圧倒的なスペックで、どの出会いの場でも間違いなく注目の的になります。',sx:'あなたの彼氏は何キャラ？気になる男性にやらせてみて！'},
+  {min:60,emoji:'⭐',cn:'逃したら後悔する男',lb:'RARE',co:'#0F6E56',bg:'#E1F5EE',cm:'出会った瞬間は気づかないけど、別れてから「あれ最高だったかも」と気づくタイプ。多くの女性が求める条件を高いレベルで満たしています。',sx:'あなたの彼氏は何キャラ？気になる男性にやらせてみて！'},
+  {min:50,emoji:'🔵',cn:'磨けば光る原石',lb:'UNCOMMON+',co:'#185FA5',bg:'#E6F1FB',cm:'ポテンシャルの塊。平均を確実に上回る複数の強みがあります。ちょっと惜しいところがあるからこそ愛着が湧く。あと一押しで希少ゾーンへ突入できる位置にいます。',sx:'彼氏候補の男性にもやらせてみて！あなたの彼氏は何キャラ？'},
+  {min:40,emoji:'🟢',cn:'平均の壁を越えた男',lb:'UNCOMMON',co:'#3B6D11',bg:'#EAF3DE',cm:'「普通じゃないな」と感じさせる何かがある。複数の強みがあり、平均より上位に位置しています。モテる理由は自分でもわかっていない謎の人。',sx:'気になる男性にやらせてみて！あなたの彼氏は何キャラ？'},
+  {min:30,emoji:'🟡',cn:'コツコツ型の努力家',lb:'NORMAL+',co:'#854F0B',bg:'#FAEEDA',cm:'今は平凡でも5年後に「あの人すごくなってる」と言われるタイプ。株を買うなら今がチャンス。',sx:'気になる男性にやらせてみて！あなたの彼氏は何キャラ？'},
+  {min:20,emoji:'⚪',cn:'どこにでもいる彼氏候補',lb:'NORMAL',co:'#5F5E5A',bg:'#F1EFE8',cm:'悪い人じゃないんだけど印象に残りにくい。一発逆転の武器が欲しい、惜しい男。',sx:'あなたの彼氏も診断してみて！何キャラか気になる'},
+  {min:10,emoji:'🔘',cn:'伸びしろしかない男',lb:'BELOW NORMAL',co:'#888780',bg:'#F1EFE8',cm:'スペックは低めだが、やる気と根性は本物。正しい方向に走れば必ず化ける原石の卵。',sx:'友達の彼氏にもやらせてみて！あなたの彼氏は何キャラ？'},
+  {min:0,emoji:'⬜',cn:'まだ何者でもない男',lb:'ROOKIE',co:'#B4B2A9',bg:'#F1EFE8',cm:'白紙だからこそ、何にでもなれる無限の可能性。すべての伝説はここから始まりました。',sx:'友達の彼氏にもやらせてみて！あなたの彼氏は何キャラ？'},
+];
+const RKF=[
+  {min:90,emoji:'👑',cn:'奇跡の天使',lb:'LEGENDARY',co:'#92700A',bg:'#FEF3C7',cm:'存在するだけで周りの男性の心拍数が上がる、生ける神話。「こんな人本当にいるの？」とSNSでバズるレベル。あなたに出会えた男性は、前世で相当な徳を積んでいます。',sx:'彼女にやらせてみて！あなたの彼女は何キャラ？'},
+  {min:80,emoji:'💎',cn:'高嶺の女神',lb:'MYTHIC',co:'#6D28D9',bg:'#EDE9FE',cm:'見るだけで満足してしまう、手が届きそうで届かない存在。婚活市場に現れた瞬間、争奪戦が始まるレベルのスペック。',sx:'彼女にやらせてみて！あなたの彼女は何キャラ？'},
+  {min:70,emoji:'🔥',cn:'最強の嫁候補',lb:'ULTRA RARE',co:'#9D174D',bg:'#FCE7F3',cm:'顔よし・性格よし・家事よしの三拍子。「こういう人と結婚したかった」と既婚男性が泣きながら呟くスペック。',sx:'気になる女性にやらせてみて！彼女は何キャラ？'},
+  {min:60,emoji:'⭐',cn:'沼落ちさせる女',lb:'RARE',co:'#0F6E56',bg:'#E1F5EE',cm:'じわじわ好きになって気づいたら抜け出せない。別れた後に「あの子が一番よかった」と後悔させるタイプ。',sx:'彼女にやらせてみて！あなたの彼女は何キャラ？'},
+  {min:50,emoji:'🔵',cn:'もう少しで完璧な女',lb:'UNCOMMON+',co:'#7C3AED',bg:'#F5F3FF',cm:'あと一歩で神スペックなのに、どこかひとつ惜しい。でもその「惜しさ」がむしろ愛おしくて、放っておけない存在。',sx:'気になる女性にやらせてみて！彼女は何キャラ？'},
+  {min:40,emoji:'🟢',cn:'平均超えの隠れ良妻',lb:'UNCOMMON',co:'#3B6D11',bg:'#EAF3DE',cm:'普通に見えて、付き合ってみると「あれ、この人めちゃくちゃいい」と気づかれるタイプ。',sx:'あなたの彼女にやらせてみて！何キャラか気になる'},
+  {min:30,emoji:'🟡',cn:'伸び代しかない原石',lb:'NORMAL+',co:'#854F0B',bg:'#FAEEDA',cm:'今は磨かれていないけど、ちゃんと磨けば光る。5年後が楽しみな、未来への投資物件。',sx:'あなたの彼女にやらせてみて！何キャラか気になる'},
+  {min:20,emoji:'⚪',cn:'ザ・普通の女の子',lb:'NORMAL',co:'#5F5E5A',bg:'#F1EFE8',cm:'悪くはないんだけど、何かが突き抜けていない。でも「普通」って実は最強の武器かもしれない。',sx:'あなたの彼女にやらせてみて！何キャラか気になる'},
+  {min:10,emoji:'🔘',cn:'個性的すぎる女',lb:'BELOW NORMAL',co:'#7C3AED',bg:'#F5F3FF',cm:'万人受けはしないけど、刺さる男性には絶対刺さる。ニッチ市場の隠れた人気者。',sx:'友達にもやらせてみて！あなたの友達は何キャラ？'},
+  {min:0,emoji:'⬜',cn:'まだ開花前の蕾',lb:'ROOKIE',co:'#BE185D',bg:'#FDF2F8',cm:'今は咲いていないだけ。水と栄養をもらえば一番綺麗に咲く花になれる。旅はこれから。',sx:'友達にもやらせてみて！あなたの友達は何キャラ？'},
+];
+function getRank(s,g){return(g==='m'?RKM:RKF).find(r=>s>=r.min)||(g==='m'?RKM:RKF).slice(-1)[0];}
+
+const MPER=[
+  {label:'誠実・浮気しない',score:15},{label:'思いやりがある',score:13},{label:'包容力がある',score:12},
+  {label:'話をちゃんと聞いてくれる',score:12},{label:'感情的にならない',score:10},{label:'ユーモアがある',score:10},
+  {label:'リーダーシップがある',score:9},{label:'約束・時間を守る',score:9},{label:'礼儀正しい・常識がある',score:8},
+  {label:'向上心・野心がある',score:8},{label:'穏やか・温かい雰囲気',score:8},{label:'自分の意見をしっかり持つ',score:6},
+];
+const MMAXP=MPER.reduce((a,b)=>a+b.score,0);
+const MDBT=[
+  {label:'借金・ローンは一切ない',se:100},{label:'住宅ローンのみ',se:85},{label:'奨学金（返済中）',se:70},
+  {label:'車・その他ローン',se:60},{label:'事業資金（個人連帯保証なし）',se:65},
+  {label:'事業資金（個人連帯保証あり）',se:35},{label:'消費者金融・カードローン',se:5},
+];
+const MCATW={'経済力':0.28,'内面・性格':0.22,'外見':0.18,'生活力':0.15,'ステータス':0.10,'相性・気遣い':0.07};
+const MQS=[
+  {id:'face',cat:'外見',cc:'mc-look',t:'かっこいい・イケメンと言われますか？',type:'s',opts:[{l:'ほとんど言われない',s:20},{l:'たまに言われる',s:45},{l:'よく言われる（半数以上から）',s:72},{l:'ほぼ毎回言われる',s:90},{l:'モデル・芸能人レベルと言われる',s:98}]},
+  {id:'height',cat:'外見',cc:'mc-look',t:'身長はどのくらいですか？',type:'s',opts:[{l:'165cm未満',s:15},{l:'165〜169cm',s:35},{l:'170〜174cm',s:55},{l:'175〜179cm',s:75},{l:'180〜184cm',s:90},{l:'185cm以上',s:97}]},
+  {id:'body',cat:'外見',cc:'mc-look',t:'体型は？',type:'s',opts:[{l:'肥満・太め',s:15},{l:'普通体型',s:45},{l:'細め・スリム',s:65},{l:'細マッチョ',s:88},{l:'ガチ筋肉・アスリート体型',s:95}]},
+  {id:'clean',cat:'外見',cc:'mc-look',t:'清潔感・身だしなみは？',type:'s',opts:[{l:'あまり気にしていない',s:10},{l:'普通（最低限は整えている）',s:45},{l:'気を使っている方',s:72},{l:'かなりこだわっている',s:90}]},
+  {id:'home',cat:'ステータス',cc:'mc-status',t:'住まい・エリアは？',type:'s',opts:[{l:'地方・郊外（賃貸）',s:12},{l:'地方・郊外（持ち家）',s:25},{l:'都内・都市部（賃貸）',s:40},{l:'都内・都市部（持ち家・分譲）',s:70},{l:'都内一等地（賃貸）',s:82},{l:'都内一等地（持ち家）',s:97}]},
+  {id:'edu',cat:'ステータス',cc:'mc-status',t:'最終学歴は？',type:'s',opts:[{l:'高卒・専門卒',s:25},{l:'大学卒（中堅）',s:50},{l:'大学卒（難関・有名校）',s:75},{l:'大学院卒（国内）',s:85},{l:'東大・京大・旧帝大',s:93},{l:'海外大学・大学院卒',s:96}]},
+  {id:'lang',cat:'ステータス',cc:'mc-status',t:'語学力は？',type:'s',opts:[{l:'日本語のみ',s:30},{l:'英語が少し話せる',s:55},{l:'英語がビジネスレベル',s:78},{l:'英語がネイティブレベル',s:90},{l:'英語＋もう一言語以上',s:95}]},
+  {id:'income',cat:'経済力',cc:'mc-money',t:'年収はどのくらいですか？',type:'s',opts:[{l:'300万円未満',s:8},{l:'300〜500万円',s:25},{l:'500〜700万円',s:50},{l:'700〜1000万円',s:72},{l:'1000〜2000万円',s:88},{l:'2000〜5000万円',s:96},{l:'5000万円以上',s:99}]},
+  {id:'asset',cat:'経済力',cc:'mc-money',t:'現金・金融資産はどのくらいですか？',type:'s',opts:[{l:'ほぼなし・100万円未満',s:10},{l:'100〜500万円',s:30},{l:'500〜1000万円',s:55},{l:'1000〜3000万円',s:75},{l:'3000万〜1億円',s:90},{l:'1億円以上',s:98}]},
+  {id:'money_sense',cat:'経済力',cc:'mc-money',t:'お金の使い方・金銭感覚は？',type:'s',opts:[{l:'無計画に使ってしまう方',s:10},{l:'なんとなく使っている',s:30},{l:'普通（収支はだいたい把握している）',s:55},{l:'計画的に管理している',s:78},{l:'かなり意識高い（投資・資産形成など）',s:95}]},
+  {id:'debt',cat:'経済力',cc:'mc-money',t:'現在、借金・ローンはありますか？',hint:'複数選択OK',type:'debt'},
+  {id:'job',cat:'経済力',cc:'mc-money',t:'職業・雇用形態は？',type:'s',opts:[{l:'アルバイト・フリーター',s:10},{l:'契約社員・派遣',s:25},{l:'会社員（中小企業）',s:50},{l:'会社員（大企業・上場）',s:72},{l:'公務員・士業（弁護士・医師等）',s:82},{l:'経営者・役員（非上場）',s:93},{l:'上場企業オーナー・経営者',s:98},{l:'投資家・資産運用で生活',s:97}]},
+  {id:'personality',cat:'内面・性格',cc:'mc-mind',t:'あなたの性格・人柄は？',hint:'複数選択OK',type:'mm'},
+  {id:'empathy',cat:'内面・性格',cc:'mc-mind',t:'相手のペースや気持ちを察することができますか？',type:'s',opts:[{l:'あまり得意ではない',s:10},{l:'言葉にしてもらえばわかる',s:40},{l:'なんとなく察せる方だと思う',s:72},{l:'言葉がなくても表情や雰囲気で読める',s:95}]},
+  {id:'touch',cat:'内面・性格',cc:'mc-mind',t:'スキンシップは自然にできますか？',type:'s',opts:[{l:'苦手・あまりしない',s:15},{l:'相手からされるのは好き',s:35},{l:'自然にできる方だと思う',s:68},{l:'ハグ・手をつなぐ・さりげないタッチが得意',s:90}]},
+  {id:'childcare',cat:'生活力',cc:'mc-life',t:'家事・育児への協力姿勢は？',type:'s',opts:[{l:'正直あまりやりたくない・苦手意識がある',s:8},{l:'言われればやる・サポート程度',s:35},{l:'積極的に参加したい・分担できる',s:72},{l:'むしろ得意・主体的に取り組める',s:92}]},
+  {id:'housework',cat:'生活力',cc:'mc-life',t:'家事スキルは？',type:'s',opts:[{l:'ほとんどできない',s:10},{l:'最低限はできる（洗濯・掃除）',s:40},{l:'一通りできる（料理も普通にできる）',s:65},{l:'得意・家事全般こなせる',s:85},{l:'料理も家事も人に振る舞えるレベル',s:95}]},
+  {id:'health',cat:'生活力',cc:'mc-life',t:'健康・体力管理は？',type:'s',opts:[{l:'運動習慣なし・不健康気味',s:10},{l:'たまに運動する程度',s:35},{l:'定期的に運動・体力に自信あり',s:65},{l:'週4以上トレーニング・体力かなりある',s:85},{l:'格闘技・武道・競技レベル',s:95}]},
+  {id:'smoking',cat:'生活力',cc:'mc-life',t:'タバコは吸いますか？',type:'s',opts:[{l:'紙タバコを吸う（毎日・習慣的に）',s:5},{l:'紙タバコを吸う（たまに）',s:20},{l:'加熱式タバコ（IQOSなど）を吸う',s:45},{l:'禁煙中・やめようとしている',s:65},{l:'タバコは一切吸わない',s:95}]},
+  {id:'scent',cat:'相性・気遣い',cc:'mc-care',t:'体臭・口臭のケアをしていますか？',type:'s',opts:[{l:'ほとんどケアしていない',s:10},{l:'気になった時だけケアする',s:40},{l:'毎日ケアしている',s:75},{l:'かなりこだわっている',s:95}]},
+  {id:'verbal',cat:'相性・気遣い',cc:'mc-care',t:'言葉で気持ちや褒め言葉を伝えられますか？',type:'s',opts:[{l:'照れくさくてほぼ言えない',s:15},{l:'たまに言える',s:40},{l:'自然に言える方',s:72},{l:'褒めること・感謝を伝えることが得意',s:92}]},
+];
+const FPER=[
+  {label:'優しい・思いやりがある',score:15},{label:'明るい・ポジティブ',score:13},{label:'素直・純粋',score:12},
+  {label:'穏やか・癒し系',score:12},{label:'感情的にならない・落ち着いている',score:10},{label:'聞き上手・話しやすい',score:10},
+  {label:'誠実・浮気しない',score:10},{label:'ユーモアがある',score:9},{label:'一緒にいて楽・自然体',score:9},
+];
+const FMAXP=FPER.reduce((a,b)=>a+b.score,0);
+const FSTL=[
+  {label:'特に言われない',score:10},{label:'「細い」と言われる',score:30},
+  {label:'「グラマー・スタイルいい」と言われる',score:25},{label:'「モデルみたい」と言われる',score:20},
+  {label:'「色気がある」と言われる',score:15},
+];
+const FCATW={'外見':0.30,'性格・内面':0.25,'生活力':0.18,'清潔感':0.12,'育児意欲':0.08,'経済力':0.04,'気遣い':0.03};
+const FQS=[
+  {id:'personality',cat:'性格・内面',cc:'fc-mind',t:'あなたの性格・人柄は？',hint:'複数選択OK',type:'mf'},
+  {id:'empathy',cat:'性格・内面',cc:'fc-mind',t:'相手の気持ちや状況を察することができますか？',type:'s',opts:[{l:'あまり得意ではない',s:10},{l:'言葉にしてもらえればわかる',s:40},{l:'なんとなく察せる方だと思う',s:72},{l:'言葉がなくても空気で読める',s:95}]},
+  {id:'verbal',cat:'性格・内面',cc:'fc-mind',t:'言葉で感謝や気持ちを伝えられますか？',type:'s',opts:[{l:'照れくさくてほぼ言えない',s:20},{l:'たまに言える',s:45},{l:'自然に言える方',s:72},{l:'「ありがとう」「好き」を日常的に伝えられる',s:92}]},
+  {id:'smile',cat:'性格・内面',cc:'fc-mind',t:'笑顔・愛嬌はありますか？',type:'s',opts:[{l:'あまりないと思う',s:15},{l:'普通程度',s:45},{l:'よく笑う・明るいと言われる',s:75},{l:'愛嬌があると言われる・笑顔が武器',s:95}]},
+  {id:'cooking',cat:'生活力',cc:'fc-life',t:'料理スキルは？',type:'s',opts:[{l:'ほとんどできない・しない',s:5},{l:'簡単なもの（目玉焼き・インスタントなど）',s:30},{l:'一通り作れる（和洋中ある程度）',s:62},{l:'得意・手料理でもてなせるレベル',s:85},{l:'料理が趣味・レパートリーが豊富',s:97}]},
+  {id:'housework',cat:'生活力',cc:'fc-life',t:'家事全般のスキルは？',type:'s',opts:[{l:'ほとんどできない',s:10},{l:'最低限はできる（洗濯・掃除）',s:40},{l:'一通りできる',s:65},{l:'得意・きれい好きで苦にならない',s:88},{l:'完璧にこなせる・家全体を整える',s:97}]},
+  {id:'money',cat:'生活力',cc:'fc-life',t:'金銭感覚・節約力は？',type:'s',opts:[{l:'無計画に使ってしまう',s:8},{l:'なんとなく使っている',s:30},{l:'普通（収支をだいたい把握している）',s:55},{l:'計画的・節約上手',s:78},{l:'かなり意識高い（家計管理・投資・資産形成）',s:95}]},
+  {id:'touch',cat:'気遣い',cc:'fc-care',t:'スキンシップは自然にできますか？',type:'s',opts:[{l:'苦手・あまりしない',s:15},{l:'相手からされるのは好き',s:40},{l:'自然にできる方',s:70},{l:'積極的にスキンシップをとる方',s:90}]},
+  {id:'scent',cat:'気遣い',cc:'fc-care',t:'体臭・口臭のケアをしていますか？',type:'s',opts:[{l:'ほとんどケアしていない',s:10},{l:'気になった時だけケアする',s:40},{l:'毎日ケアしている',s:75},{l:'かなりこだわっている',s:95}]},
+  {id:'shower',cat:'清潔感',cc:'fc-clean',t:'お風呂・シャワーの頻度は？',type:'s',opts:[{l:'2日以上入らないことがある',s:5},{l:'毎日入るが、たまに忘れることもある',s:40},{l:'毎日必ず入る',s:80},{l:'朝晩2回入ることが多い',s:95}]},
+  {id:'fashion',cat:'清潔感',cc:'fc-clean',t:'身なり・メイク・ファッションへの意識は？',type:'s',opts:[{l:'あまり気にしていない',s:10},{l:'最低限は整えている',s:45},{l:'気を使っている方（TPOに合わせられる）',s:75},{l:'かなりこだわっている（いつでも手を抜かない）',s:95}]},
+  {id:'smoking',cat:'清潔感',cc:'fc-clean',t:'タバコは吸いますか？',type:'s',opts:[{l:'紙タバコを吸う（毎日・習慣的に）',s:5},{l:'紙タバコを吸う（たまに）',s:20},{l:'加熱式タバコ（IQOSなど）を吸う',s:45},{l:'禁煙中・やめようとしている',s:65},{l:'タバコは一切吸わない',s:95}]},
+  {id:'face',cat:'外見',cc:'fc-look',t:'顔について、かわいい・きれいと言われますか？',type:'s',opts:[{l:'ほとんど言われない',s:20},{l:'たまに言われる',s:45},{l:'よく言われる（半数以上から）',s:72},{l:'ほぼ毎回言われる（出会う人の多くから）',s:90},{l:'モデル・芸能人レベルと言われる',s:98}]},
+  {id:'height_f',cat:'外見',cc:'fc-look',t:'身長を教えてください',type:'hf'},
+  {id:'weight_f',cat:'外見',cc:'fc-look',t:'体重を教えてください',type:'wf'},
+  {id:'style',cat:'外見',cc:'fc-look',t:'スタイルについて言われることは？',hint:'複数選択OK',type:'sf'},
+  {id:'health',cat:'外見',cc:'fc-look',t:'健康管理・体力は？',type:'s',opts:[{l:'運動習慣なし・体力に自信がない',s:20},{l:'たまに運動する程度',s:45},{l:'定期的に運動・健康意識が高い',s:72},{l:'スポーツ・ヨガ・フィットネスが習慣',s:92}]},
+  {id:'job',cat:'経済力',cc:'fc-money',t:'就業状況は？',type:'s',opts:[{l:'無職・専業主婦（希望含む）',s:20},{l:'アルバイト・パート',s:35},{l:'契約社員・派遣',s:50},{l:'正社員・公務員',s:72},{l:'管理職・専門職・士業',s:88},{l:'経営者・フリーランス（高収入）',s:95}]},
+  {id:'income',cat:'経済力',cc:'fc-money',t:'年収はどのくらいですか？',type:'s',opts:[{l:'収入なし・100万円未満',s:15},{l:'100〜200万円',s:30},{l:'200〜400万円',s:55},{l:'400〜600万円',s:75},{l:'600〜800万円',s:88},{l:'800万円以上',s:97}]},
+  {id:'childcare',cat:'育児意欲',cc:'fc-child',t:'育児・子育てへの意欲は？',type:'s',opts:[{l:'子供はあまり好きではない・苦手',s:10},{l:'嫌いではないが、自信がない',s:40},{l:'好き・子供と関わることが得意',s:72},{l:'積極的に育てたい・母性が強い',s:95}]},
+];
+
+let mCur=0,mAns={},mMSel={},mDSel=new Set([0]);
+let fCur=0,fAns={},fMSel={},fSSel=new Set([0]),fHv=0,fWv=0;
+
+function startQuiz(g){document.getElementById('portal').style.display='none';if(g==='m'){document.getElementById('quiz-m').style.display='block';renderM();}else{document.getElementById('quiz-f').style.display='block';renderF();}}
+function goHome(){['portal','quiz-m','quiz-f','result-m','result-f'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=id==='portal'?'flex':'none';});}
+function getLabel(qs,id,idx){const q=qs.find(q=>q.id===id);if(!q||!q.opts)return'';return q.opts[idx]?q.opts[idx].l:'';}
+
+function mkCheckBtn(cls, label, isSel, onclick) {
+  return '<button class="mb ' + cls + (isSel?' sel':'') + '" onclick="' + onclick + '">' +
+    '<span class="chkbox"><span class="chkmark">✓</span></span>' +
+    '<span class="cb-label">' + label + '</span>' +
+    '</button>';
+}
+
+function renderM(){
+  const q=MQS[mCur];
+  document.getElementById('mp').style.width=Math.round(mCur/MQS.length*100)+'%';
+  const qn='Q'+(mCur+1)+' / '+MQS.length;
+  if(q.type==='debt'){
+    let btns=MDBT.map((o,i)=>mkCheckBtn('mbm',o.label,mDSel.has(i),'mTogDebt('+i+')')).join('');
+    document.getElementById('mcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div class="q-hint">複数選択OK</div><div class="mcol" id="mdopts">'+btns+'</div></div><div class="nav"><button class="nav-btn bb" onclick="mBack()">← 戻る</button><button class="nav-btn nm" onclick="mNext()">次へ →</button></div>';
+  } else if(q.type==='mm'){
+    if(!mMSel[q.id])mMSel[q.id]=new Set();
+    const sel=mMSel[q.id];
+    let btns=MPER.map((o,i)=>mkCheckBtn('mbm',o.label,sel.has(i),'mTogMul('+i+')')).join('');
+    document.getElementById('mcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div class="q-hint">複数選択OK</div><div class="mgrid" id="mmopts">'+btns+'</div></div><div class="nav"><button class="nav-btn bb" onclick="mBack()">← 戻る</button><button class="nav-btn nm" onclick="mNext()">次へ →</button></div>';
+  } else {
+    const sel=mAns[q.id]!==undefined?mAns[q.id]:-1;
+    const btns=q.opts.map((o,i)=>'<button class="ob obm'+(sel===i?' sel':'')+'" onclick="mSel('+i+')">'+o.l+'</button>').join('');
+    document.getElementById('mcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div class="options">'+btns+'</div></div><div class="nav">'+(mCur>0?'<button class="nav-btn bb" onclick="mBack()">← 戻る</button>':'')+'<button class="nav-btn nm" id="mnxt" onclick="mNext()" '+(sel===-1?'disabled':'')+'>'+(mCur===MQS.length-1?'診断結果を見る →':'次へ →')+'</button></div>';
+  }
+}
+function mTogDebt(i){
+  if(i===0){mDSel.clear();mDSel.add(0);}else{mDSel.delete(0);if(mDSel.has(i))mDSel.delete(i);else mDSel.add(i);if(mDSel.size===0)mDSel.add(0);}
+  document.querySelectorAll('#mdopts .mb').forEach((b,j)=>{const s=mDSel.has(j);b.classList.toggle('sel',s);b.querySelector('.chkmark').style.display=s?'block':'none';});
+}
+function mTogMul(i){
+  const sel=mMSel[MQS[mCur].id];if(sel.has(i))sel.delete(i);else sel.add(i);
+  mAns[MQS[mCur].id]=Math.round(Array.from(sel).reduce((a,idx)=>a+MPER[idx].score,0)/MMAXP*100);
+  document.querySelectorAll('#mmopts .mb').forEach((b,j)=>{const s=sel.has(j);b.classList.toggle('sel',s);b.querySelector('.chkmark').style.display=s?'block':'none';});
+}
+function mSel(i){mAns[MQS[mCur].id]=i;document.querySelectorAll('.obm').forEach((b,j)=>b.classList.toggle('sel',j===i));const nb=document.getElementById('mnxt');if(nb)nb.disabled=false;}
+function mBack(){if(mCur>0){mCur--;renderM();}}
+function mNext(){
+  const q=MQS[mCur];
+  if(q.type==='debt'){if(mDSel.has(0)&&mDSel.size===1){mAns.debt=100;}else{const a=[...mDSel].filter(i=>i!==0);mAns.debt=a.some(i=>MDBT[i].se<=10)?5:Math.min(...a.map(i=>MDBT[i].se));}}
+  else if(q.type==='mm'){if(mAns[q.id]===undefined)mAns[q.id]=0;}
+  else if(mAns[q.id]===undefined)return;
+  if(mCur<MQS.length-1){mCur++;renderM();}else showResultM();
+}
+
+function renderF(){
+  const q=FQS[fCur];
+  document.getElementById('fp').style.width=Math.round(fCur/FQS.length*100)+'%';
+  const qn='Q'+(fCur+1)+' / '+FQS.length;
+  if(q.type==='mf'){
+    if(!fMSel[q.id])fMSel[q.id]=new Set();
+    const sel=fMSel[q.id];
+    let btns=FPER.map((o,i)=>mkCheckBtn('mbf',o.label,sel.has(i),'fTogMul('+i+')')).join('');
+    document.getElementById('fcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div class="q-hint">複数選択OK</div><div class="mgrid" id="fmopts">'+btns+'</div></div><div class="nav">'+(fCur>0?'<button class="nav-btn bb" onclick="fBack()">← 戻る</button>':'')+'<button class="nav-btn nf" onclick="fNext()">次へ →</button></div>';
+  } else if(q.type==='sf'){
+    let btns=FSTL.map((o,i)=>mkCheckBtn('mbf',o.label,fSSel.has(i),'fTogSty('+i+')')).join('');
+    document.getElementById('fcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div class="q-hint">複数選択OK</div><div class="mcol" id="fsopts">'+btns+'</div></div><div class="nav"><button class="nav-btn bb" onclick="fBack()">← 戻る</button><button class="nav-btn nf" onclick="fNext()">次へ →</button></div>';
+  } else if(q.type==='hf'){
+    document.getElementById('fcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div style="display:flex;align-items:center;gap:10px;margin-top:8px"><input type="number" class="inf" placeholder="例：158" min="140" max="200" value="'+(fHv||'')+'" oninput="fHv=parseInt(this.value)||0;document.getElementById(\'fnxt\').disabled=fHv<=0;"/><span style="font-size:15px;color:#666">cm</span></div></div><div class="nav"><button class="nav-btn bb" onclick="fBack()">← 戻る</button><button class="nav-btn nf" id="fnxt" onclick="fNext()" '+(fHv>0?'':'disabled')+'>次へ →</button></div>';
+  } else if(q.type==='wf'){
+    document.getElementById('fcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div style="display:flex;align-items:center;gap:10px;margin-top:8px"><input type="number" class="inf" placeholder="例：50" min="30" max="150" value="'+(fWv||'')+'" oninput="fWv=parseInt(this.value)||0;document.getElementById(\'fnxt\').disabled=fWv<=0;"/><span style="font-size:15px;color:#666">kg</span></div></div><div class="nav"><button class="nav-btn bb" onclick="fBack()">← 戻る</button><button class="nav-btn nf" id="fnxt" onclick="fNext()" '+(fWv>0?'':'disabled')+'>次へ →</button></div>';
+  } else {
+    const sel=fAns[q.id]!==undefined?fAns[q.id]:-1;
+    const btns=q.opts.map((o,i)=>'<button class="ob obf'+(sel===i?' sel':'')+'" onclick="fSel('+i+')">'+o.l+'</button>').join('');
+    document.getElementById('fcon').innerHTML='<div style="font-size:12px;color:#666;margin-bottom:12px">'+qn+'</div><div class="q-block"><div class="q-meta"><span class="q-num">'+q.cat+'</span><span class="q-cat '+q.cc+'">'+q.cat+'</span></div><div class="q-title">'+q.t+'</div><div class="options">'+btns+'</div></div><div class="nav">'+(fCur>0?'<button class="nav-btn bb" onclick="fBack()">← 戻る</button>':'')+'<button class="nav-btn nf" id="fnxt" onclick="fNext()" '+(sel===-1?'disabled':'')+'>'+(fCur===FQS.length-1?'診断結果を見る →':'次へ →')+'</button></div>';
+  }
+}
+function fTogMul(i){const sel=fMSel[FQS[fCur].id];if(sel.has(i))sel.delete(i);else sel.add(i);fAns[FQS[fCur].id]=Math.round(Array.from(sel).reduce((a,idx)=>a+FPER[idx].score,0)/FMAXP*100);document.querySelectorAll('#fmopts .mb').forEach((b,j)=>{const s=sel.has(j);b.classList.toggle('sel',s);b.querySelector('.chkmark').style.display=s?'block':'none';});}
+function fTogSty(i){if(i===0){fSSel.clear();fSSel.add(0);}else{fSSel.delete(0);if(fSSel.has(i))fSSel.delete(i);else fSSel.add(i);if(fSSel.size===0)fSSel.add(0);}document.querySelectorAll('#fsopts .mb').forEach((b,j)=>{const s=fSSel.has(j);b.classList.toggle('sel',s);b.querySelector('.chkmark').style.display=s?'block':'none';});}
+function fSel(i){fAns[FQS[fCur].id]=i;document.querySelectorAll('.obf').forEach((b,j)=>b.classList.toggle('sel',j===i));const nb=document.getElementById('fnxt');if(nb)nb.disabled=false;}
+function fBack(){if(fCur>0){fCur--;renderF();}}
+function fNext(){
+  const q=FQS[fCur];
+  if(q.type==='hf'){if(fHv<=0)return;fAns.height_f=fHv;}
+  else if(q.type==='wf'){if(fWv<=0)return;fAns.weight_f=fWv;}
+  else if(q.type==='sf'){const a=[...fSSel];fAns.style=fSSel.has(0)?'特に言われない':a.map(i=>FSTL[i].label).join('／');}
+  else if(q.type==='mf'){if(fAns[q.id]===undefined)fAns[q.id]=0;}
+  else if(fAns[q.id]===undefined)return;
+  if(fCur<FQS.length-1){fCur++;renderF();}else showResultF();
+}
+
+function calcScore(qs,cw,ans){
+  const cats={};Object.keys(cw).forEach(c=>cats[c]=[]);
+  qs.forEach(q=>{
+    let s;
+    if(q.type==='debt'){s=typeof ans.debt==='number'?ans.debt:50;}
+    else if(q.type==='mm'||q.type==='mf'){s=ans[q.id]||0;}
+    else if(q.type==='hf'){const h=ans.height_f||158;s=h>=165?85:h>=158?75:h>=150?55:35;}
+    else if(q.type==='wf'){const h=ans.height_f||158;const w=ans.weight_f||50;const b=w/((h/100)**2);s=b<16?30:b<18.5?70:b<22?95:b<25?80:b<28?55:b<30?35:15;}
+    else if(q.type==='sf'){if(!ans.style||ans.style==='特に言われない'){s=15;}else{const ls=ans.style.split('／');let t=0;FSTL.forEach(st=>{if(ls.includes(st.label))t+=st.score;});s=Math.min(100,Math.round(t/100*150));}}
+    else{const o=q.opts?q.opts[ans[q.id]]:null;s=o?o.s:30;}
+    if(cats[q.cat]!==undefined)cats[q.cat].push(s);
+  });
+  const cs={};Object.keys(cats).forEach(c=>{if(cats[c].length>0)cs[c]=Math.round(cats[c].reduce((a,b)=>a+b,0)/cats[c].length);});
+  let ws=0;Object.entries(cw).forEach(([c,w])=>{if(cs[c]!==undefined)ws+=cs[c]*w;});
+  return{cs,fs:Math.min(99,Math.round(ws))};
+}
+
+function showResultM(){
+  document.getElementById('quiz-m').style.display='none';document.getElementById('result-m').style.display='block';
+  const{cs,fs}=calcScore(MQS,MCATW,mAns);const rank=getRank(fs,'m');const pop=getPop(fs,'m');
+  renderResult('m',fs,rank,pop,cs);
+  const dl=mDSel.has(0)&&mDSel.size===1?'借金・ローンは一切ない':[...mDSel].filter(i=>i!==0).map(i=>MDBT[i].label).join('／');
+  const pl=mMSel['personality']&&mMSel['personality'].size>0?[...mMSel['personality']].map(i=>MPER[i].label).join('／'):'（未選択）';
+  sendGAS({gender:'m',score:fs,rank:rank.lb,charaName:rank.cn,population:pop.num,
+    face:getLabel(MQS,'face',mAns.face),height:getLabel(MQS,'height',mAns.height),body:getLabel(MQS,'body',mAns.body),clean:getLabel(MQS,'clean',mAns.clean),
+    home:getLabel(MQS,'home',mAns.home),edu:getLabel(MQS,'edu',mAns.edu),lang:getLabel(MQS,'lang',mAns.lang),
+    income:getLabel(MQS,'income',mAns.income),asset:getLabel(MQS,'asset',mAns.asset),money_sense:getLabel(MQS,'money_sense',mAns.money_sense),
+    debt:dl,job:getLabel(MQS,'job',mAns.job),personality:pl,
+    empathy:getLabel(MQS,'empathy',mAns.empathy),touch:getLabel(MQS,'touch',mAns.touch),
+    childcare:getLabel(MQS,'childcare',mAns.childcare),housework:getLabel(MQS,'housework',mAns.housework),
+    health:getLabel(MQS,'health',mAns.health),smoking:getLabel(MQS,'smoking',mAns.smoking),
+    scent:getLabel(MQS,'scent',mAns.scent),verbal:getLabel(MQS,'verbal',mAns.verbal),
+    cat_外見:cs['外見']||0,cat_ステータス:cs['ステータス']||0,cat_経済力:cs['経済力']||0,
+    cat_内面性格:cs['内面・性格']||0,cat_生活力:cs['生活力']||0,cat_相性気遣い:cs['相性・気遣い']||0});
+  window._mR={fs,rank,pop};
+}
+function showResultF(){
+  document.getElementById('quiz-f').style.display='none';document.getElementById('result-f').style.display='block';
+  const{cs,fs}=calcScore(FQS,FCATW,fAns);const rank=getRank(fs,'f');const pop=getPop(fs,'f');
+  renderResult('f',fs,rank,pop,cs);
+  const pl=fMSel['personality']&&fMSel['personality'].size>0?[...fMSel['personality']].map(i=>FPER[i].label).join('／'):'（未選択）';
+  sendGAS({gender:'f',score:fs,rank:rank.lb,charaName:rank.cn,population:pop.num,
+    personality:pl,empathy:getLabel(FQS,'empathy',fAns.empathy),verbal:getLabel(FQS,'verbal',fAns.verbal),smile:getLabel(FQS,'smile',fAns.smile),
+    cooking:getLabel(FQS,'cooking',fAns.cooking),housework:getLabel(FQS,'housework',fAns.housework),money:getLabel(FQS,'money',fAns.money),
+    touch:getLabel(FQS,'touch',fAns.touch),scent:getLabel(FQS,'scent',fAns.scent),
+    shower:getLabel(FQS,'shower',fAns.shower),fashion:getLabel(FQS,'fashion',fAns.fashion),smoking:getLabel(FQS,'smoking',fAns.smoking),
+    face:getLabel(FQS,'face',fAns.face),height_f:fHv?fHv+'cm':'',weight_f:fWv?fWv+'kg':'',
+    style:fAns.style||'特に言われない',health:getLabel(FQS,'health',fAns.health),
+    job:getLabel(FQS,'job',fAns.job),income:getLabel(FQS,'income',fAns.income),childcare:getLabel(FQS,'childcare',fAns.childcare),
+    cat_外見:cs['外見']||0,cat_性格内面:cs['性格・内面']||0,cat_生活力:cs['生活力']||0,
+    cat_清潔感:cs['清潔感']||0,cat_育児意欲:cs['育児意欲']||0,cat_経済力:cs['経済力']||0,cat_気遣い:cs['気遣い']||0});
+  window._fR={fs,rank,pop};
+}
+
+function renderResult(g,fs,rank,pop,cs){
+  setTimeout(()=>{
+    const arc=document.getElementById(g==='m'?'marc':'farc');
+    arc.setAttribute('stroke-dasharray',(fs/100*427)+' 427');arc.setAttribute('stroke',rank.co);
+    let c=0;const t=setInterval(()=>{c+=2;if(c>=fs){c=fs;clearInterval(t);}document.getElementById(g==='m'?'msd':'fsd').textContent=c;},18);
+  },150);
+  const badge=document.getElementById(g==='m'?'mbadge':'fbadge');badge.textContent=rank.emoji+' '+rank.lb;badge.style.background=rank.bg;badge.style.color=rank.co;
+  document.getElementById(g==='m'?'mcn':'fcn').textContent=rank.cn;document.getElementById(g==='m'?'mcn':'fcn').style.color=rank.co;
+  var imgEl=document.getElementById(g==='m'?'mcharaimg':'fcharaimg');
+  if(imgEl&&CHAR_IMGS[rank.cn]){
+    imgEl.src=CHAR_IMGS[rank.cn];
+    imgEl.style.display='block';
+    imgEl.style.width='230px';
+    imgEl.style.height='auto';
+  }else if(imgEl){imgEl.style.display='none';}
+  document.getElementById(g==='m'?'mrange':'frange').textContent='スコア '+fs+'点 / 100点';
+  document.getElementById(g==='m'?'mcom':'fcom').textContent=rank.cm;
+  document.getElementById(g==='m'?'mpnum':'fpnum').textContent=pop.num;
+  document.getElementById(g==='m'?'mpsub':'fpsub').textContent=pop.sub;
+  const RKS=g==='m'?RKM:RKF;
+  document.getElementById(g==='m'?'mladder':'fladder').innerHTML=RKS.map((r,i)=>{
+    const ic=rank.cn===r.cn;const nm=RKS[i-1]?RKS[i-1].min:100;
+    return '<div class="rrow" style="background:'+(ic?r.bg:'transparent')+';border:'+(ic?'1.5px solid '+r.co:'0.5px solid transparent')+';'+(ic?'transform:scale(1.02)':'')+'">'+'<div class="rdot" style="background:'+r.co+'"></div>'+'<div style="font-size:12px;flex:1;font-weight:'+(ic?500:400)+';color:'+(ic?r.co:'#111')+'">'+r.emoji+' '+r.cn+'</div>'+'<div style="font-size:11px;color:#666">'+r.min+'〜'+(nm-1)+'点</div>'+(ic?'<span style="font-size:11px;font-weight:500;color:'+r.co+'">← あなた</span>':'')+'</div>';
+  }).join('');
+  const mcol={'外見':'#D4537E','ステータス':'#378ADD','経済力':'#EF9F27','内面・性格':'#7F77DD','生活力':'#1D9E75','相性・気遣い':'#EC4899'};
+  const fcol={'性格・内面':'#A855F7','生活力':'#EC4899','気遣い':'#F472B6','清潔感':'#8B5CF6','外見':'#D4537E','経済力':'#EF9F27','育児意欲':'#BE185D'};
+  const cc=g==='m'?mcol:fcol;
+  document.getElementById(g==='m'?'mbreak':'fbreak').innerHTML=Object.entries(cs).map(([cat,score])=>{
+    const col=cc[cat]||'#888';const gr=score>=90?'S':score>=75?'A':score>=60?'B':score>=40?'C':'D';
+    return '<div class="bcard"><div style="font-size:11px;color:#666;margin-bottom:4px">'+cat+'</div><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:13px;font-weight:500">'+score+'pt</div><span style="font-size:16px;font-weight:500;color:'+col+'">'+gr+'</span></div><div class="bbarw"><div class="bbar" style="width:0%;background:'+col+'" data-w="'+score+'"></div></div></div>';
+  }).join('');
+  const madv={'外見':'体型管理・清潔感・ファッションの3つを同時に底上げすると効果が大きい。','ステータス':'住む場所・語学力など、環境を変えることで人脈と出会いが一気に広がる。','経済力':'金銭感覚を整えることが最優先。借金がある場合は即完済を目指そう。','内面・性格':'傾聴力・共感力・スキンシップを意識的に鍛える。読書・コーチングが最短ルート。','生活力':'タバコをやめること・家事と育児への積極参加が最短で評価を上げる方法。','相性・気遣い':'体臭ケア・言葉で伝える習慣から。今日からすぐに変えられる。'};
+  const fadv={'性格・内面':'笑顔・愛嬌・察する力を意識するだけで印象が激変する。まず笑顔の練習から。','生活力':'料理から始めよう。週1回の自炊で3ヶ月後には別人のように上達する。','気遣い':'スキンシップと感謝の言葉は今日からすぐ変えられる。','清潔感':'毎日のシャワー・メイク・ファッションへの意識で評価が一気に上がる。','外見':'健康的な体型維持と笑顔が最強の外見改善。','経済力':'正社員・スキルアップを目指すと経済力スコアが大きく上がる。','育児意欲':'子供への関わり方を少し意識するだけで評価が変わる。'};
+  const adv=g==='m'?madv:fadv;
+  const sorted=Object.entries(cs).sort((a,b)=>a[1]-b[1]).slice(0,3);
+  document.getElementById(g==='m'?'madvice':'fadvice').innerHTML=sorted.map(([cat,score])=>'<div class="advi"><div style="font-size:16px;flex-shrink:0;width:20px;text-align:center">💡</div><div class="advt"><strong>'+cat+'</strong>（'+score+'pt）<br>'+(adv[cat]||'')+'</div></div>').join('');
+  setTimeout(()=>{document.querySelectorAll('#result-'+g+' .bbar').forEach(b=>{b.style.width=b.dataset.w+'%';});},300);
+}
+
+function shareX(g){
+  const d=g==='m'?window._mR:window._fR;if(!d)return;
+  const tag=g==='m'?'男性スペック診断':'女性スペック診断';
+  const text='【'+(g==='m'?'男性':'女性')+'スペック希少度診断】\n'+d.rank.emoji+' '+d.rank.cn+' / '+d.rank.lb+'\n\n希少度スコア: '+d.fs+'/100\n日本に'+d.pop.num+'\n\n'+d.rank.cm+'\n\n'+d.rank.sx+'\n#'+tag+' #'+d.rank.cn;
+  window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(text),'_blank');
+}
+function retry(g){
+  if(g==='m'){mCur=0;mAns={};mMSel={};mDSel=new Set([0]);document.getElementById('result-m').style.display='none';document.getElementById('quiz-m').style.display='block';renderM();}
+  else{fCur=0;fAns={};fMSel={};fSSel=new Set([0]);fHv=0;fWv=0;document.getElementById('result-f').style.display='none';document.getElementById('quiz-f').style.display='block';renderF();}
+}
+</script>
+</body>
+</html>
