@@ -3,6 +3,30 @@ const signImages = {};
 
 
 
+
+// 月の星座・守護星・数秘術
+const moonSigns=["♈おひつじ座","♉おうし座","♊ふたご座","♋かに座","♌しし座","♍おとめ座","♎てんびん座","♏さそり座","♐いて座","♑やぎ座","♒みずがめ座","♓うお座"];
+const dayGuardians={0:"☀️ 太陽の日（日曜）",1:"🌙 月の日（月曜）",2:"🔴 火星の日（火曜）",3:"☿ 水星の日（水曜）",4:"♃ 木星の日（木曜）",5:"♀ 金星の日（金曜）",6:"♄ 土星の日（土曜）"};
+
+function getMoonSign(d){
+  const base=new Date(2000,0,1);
+  const diff=Math.floor((d-base)/(1000*60*60*24));
+  const idx=Math.floor((diff%354)/29.5*12)%12;
+  return "月は"+ moonSigns[(idx+Math.floor(diff/365))%12]+"通過中";
+}
+function getNumerology(d){
+  const s=`${d.getFullYear()}${d.getMonth()+1}${d.getDate()}`;
+  let n=s.split('').reduce((a,b)=>a+parseInt(b),0);
+  while(n>9&&n!==11&&n!==22) n=String(n).split('').reduce((a,b)=>a+parseInt(b),0);
+  return `本日の数字【${n}】`;
+}
+function updateAstroBar(){
+  const t=new Date();
+  document.getElementById('moonSign').textContent=getMoonSign(t);
+  document.getElementById('dayGuardian').textContent=dayGuardians[t.getDay()];
+  document.getElementById('dayNumber').textContent=getNumerology(t);
+}
+
 // 日付からday_of_yearを計算
 function getDayOfYear(date) {
   const start = new Date(date.getFullYear(), 0, 0);
