@@ -409,9 +409,9 @@ function scDiagnose(){
     var daiuPaywallShown=false;
     dl.forEach(function(dd,i){
       var g=KG[dd.ki],ic=i===ci;
-      // 現在の大運より未来のみ隠す（現在の大運は表示）
-      var isAfterCurrent=(i>ci);
-      if(isAfterCurrent && !scPaid){
+      // 現在の大運を含む未来を隠す
+      var isCurrentOrFuture=(i>=ci);
+      if(isCurrentOrFuture && !scPaid){
         if(!daiuPaywallShown){
           dh+=scGetPaywallHTML(ty+1,ty+2);
           daiuPaywallShown=true;
