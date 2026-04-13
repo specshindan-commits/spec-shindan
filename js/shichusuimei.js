@@ -393,7 +393,7 @@ function scDiagnose(){
     ["木","火","土","金","水"].forEach(function(g){
       var cnt=gc[g];
       var maxStar=6;
-      var starCnt=Math.min(cnt,maxStar);
+      var starCnt=mg>0 ? Math.round(cnt/mg*maxStar) : 0;
       var stars="";
       for(var si2=0;si2<starCnt;si2++)stars+="★";
       for(var si3=starCnt;si3<maxStar;si3++)stars+="☆";
