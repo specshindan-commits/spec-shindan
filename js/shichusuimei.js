@@ -342,6 +342,13 @@ scCheckToken().then(function(paid) {
 function scGetPaywallHTML(nextYear, nextNextYear) {
   var y1 = nextYear || (new Date().getFullYear() + 1);
   var y2 = nextNextYear || (new Date().getFullYear() + 2);
+  // tokenをlocalStorageから直接取得
+  var tok = localStorage.getItem("sc_token") || "";
+  if(!tok || tok.indexOf("{") >= 0){
+    tok = "sc_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
+    localStorage.setItem("sc_token", tok);
+    scToken = tok;
+  }
   return "<div class=\"sc-paywall\">"
     + "<div class=\"sc-paywall-lock\">🔒</div>"
     + "<div class=\"sc-paywall-title\">続きを読むには購入が必要です</div>"
@@ -351,7 +358,7 @@ function scGetPaywallHTML(nextYear, nextNextYear) {
     + "<div class=\"sc-paywall-item\">✦ 流年の詳細運勢（"+y1+"年、"+y2+"年）</div>"
     + "</div>"
     + "<div class=\"sc-paywall-price\">¥500 <span>（税込）</span></div>"
-    + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004?client_reference_id="+scToken+"\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
+    + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004?client_reference_id="+tok+"\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
     + "<div class=\"sc-paywall-note\">※ クレジットカード決済（Stripe）｜安全・即時閲覧可能</div>"
     + "</div>";
 }
