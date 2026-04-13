@@ -285,7 +285,8 @@ var scToken = ""; // グローバルtoken
 // tokenを生成
 function scGenerateToken() {
   var t = localStorage.getItem("sc_token");
-  if (!t) {
+  // 無効なtoken（テンプレート変数など）は破棄して新規生成
+  if (!t || t.indexOf("{") >= 0 || t.length < 8) {
     t = "sc_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
     localStorage.setItem("sc_token", t);
   }
