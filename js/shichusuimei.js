@@ -309,9 +309,22 @@ function scCheckToken() {
   });
 }
 
-// ページ読み込み時にトークン確認
+// ページ読み込み時にトークン確認・決済完了後は自動鑑定
 scCheckToken().then(function(paid) {
-  if (paid) scPaid = true;
+  if (paid) {
+    scPaid = true;
+    // 決済完了後（URLにpaid_sc=1がある場合）は保存データで自動鑑定
+    var params = new URLSearchParams(window.location.search);
+    if(params.get("paid_sc") === "1"){
+      var savedBv = localStorage.getItem("sc_last_birthday");
+      var savedG = localStorage.getItem("sc_last_gender");
+      if(savedBv){
+        document.getElementById("scBirthday").value = savedBv;
+        if(savedG !== null) scSetGender(parseInt(savedG));
+        setTimeout(function(){ scDiagnose(); }, 500);
+      }
+    }
+  }
 });
 
 function scGetPaywallHTML(nextYear, nextNextYear) {
@@ -346,6 +359,9 @@ function scDiagnose(){
   var res=document.getElementById("sc-result");
   res.style.display="block";
   res.innerHTML="<div class=\"sc-loading\">鑑定中</div>";
+  // 鑑定情報をlocalStorageに保存（決済後の自動復元用）
+  localStorage.setItem("sc_last_birthday", bv);
+  localStorage.setItem("sc_last_gender", String(scG));
   setTimeout(function(){
     var ps=bv.split("-");
     var y=parseInt(ps[0]),m=parseInt(ps[1]),d=parseInt(ps[2]);
@@ -409,9 +425,18 @@ function scDiagnose(){
     var daiuPaywallShown=false;
     dl.forEach(function(dd,i){
       var g=KG[dd.ki],ic=i===ci;
-      // 現在の大運を含む未来を隠す
       var isCurrentOrFuture=(i>=ci);
       if(isCurrentOrFuture && !scPaid){
+        if(ic){
+          // 現在の大運：ぼかし表示
+          dh+="<div class=\"daiu-item daiu-current\" style=\"position:relative;\">"
+            +"<div style=\"filter:blur(4px);pointer-events:none;user-select:none;\">"
+            +"<div class=\"daiu-age\">"+dd.age+"〜"+(dd.age+9)+"歳<br><strong style=\"color:var(--accent)\">▶ 現在</strong></div>"
+            +"<div class=\"daiu-kan\"><span class=\"meishiki-gogyo "+GC[g]+"\" style=\"font-size:0.7rem;\">"+g+"</span><br>"+dd.k+dd.s+"</div>"
+            +"<div class=\"daiu-desc\">"+DD[g].substring(0,30)+"...</div>"
+            +"</div>"
+            +"</div>";
+        }
         if(!daiuPaywallShown){
           dh+=scGetPaywallHTML(ty+1,ty+2);
           daiuPaywallShown=true;
