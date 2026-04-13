@@ -276,7 +276,7 @@ function scDiagnose(){
     var mg=Math.max.apply(null,gv);
     var tg=gv.reduce(function(a,b){return a+b;},0);
 
-    var dr=scCalcDaiun(bd,nc,scG);
+    var dr=calcDaiun(bd,nc,scG);
     var sa=dr.sa,dl=dr.list,ci=0;
     for(var di=0;di<dl.length;di++){if(age>=dl[di].age&&(di===dl.length-1||age<dl[di+1].age)){ci=di;break;}}
 
