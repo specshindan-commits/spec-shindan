@@ -281,15 +281,21 @@ var SC_GAS_URL = "https://script.google.com/macros/s/AKfycbxFjlFuVsLislzDc_qDcAu
 var SC_STRIPE_URL = "https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004";
 var scPaid = false;
 
-function scCheckToken() {
-  var params = new URLSearchParams(window.location.search);
-  var token = params.get("token_sc");
-  if (!token) {
-    // localStorageから復元
-    token = localStorage.getItem("sc_token");
+// tokenを生成
+function scGenerateToken() {
+  var t = localStorage.getItem("sc_token");
+  if (!t) {
+    t = "sc_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
+    localStorage.setItem("sc_token", t);
   }
+  return t;
+}
+
+function scCheckToken() {
+  var token = localStorage.getItem("sc_token");
   if (!token) return Promise.resolve(false);
-  localStorage.setItem("sc_token", token);
+  // {CLIENT_REFERENCE_ID}がそのまま入っていたら無効
+  if (token.indexOf("{") >= 0) return Promise.resolve(false);
   return new Promise(function(resolve) {
     var script = document.createElement("script");
     var cb = "scTokenCb_" + Date.now();
@@ -339,7 +345,7 @@ function scGetPaywallHTML(nextYear, nextNextYear) {
     + "<div class=\"sc-paywall-item\">✦ 流年の詳細運勢（"+y1+"年、"+y2+"年）</div>"
     + "</div>"
     + "<div class=\"sc-paywall-price\">¥500 <span>（税込）</span></div>"
-    + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
+    + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004?client_reference_id="+scToken+"\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
     + "<div class=\"sc-paywall-note\">※ クレジットカード決済（Stripe）｜安全・即時閲覧可能</div>"
     + "</div>";
 }
@@ -499,6 +505,8 @@ function scDiagnose(){
   // 鑑定情報をlocalStorageに保存（決済後の自動復元用）
   localStorage.setItem("sc_last_birthday", bv);
   localStorage.setItem("sc_last_gender", String(scG));
+  // tokenを生成してStripeリンクに付与
+  var scToken = scGenerateToken();
   setTimeout(function(){
     var ps=bv.split("-");
     var y=parseInt(ps[0]),m=parseInt(ps[1]),d=parseInt(ps[2]);
