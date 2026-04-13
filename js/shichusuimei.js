@@ -314,14 +314,16 @@ scCheckToken().then(function(paid) {
   if (paid) scPaid = true;
 });
 
-function scGetPaywallHTML() {
+function scGetPaywallHTML(nextYear, nextNextYear) {
+  var y1 = nextYear || (new Date().getFullYear() + 1);
+  var y2 = nextNextYear || (new Date().getFullYear() + 2);
   return "<div class=\"sc-paywall\">"
     + "<div class=\"sc-paywall-lock\">🔒</div>"
     + "<div class=\"sc-paywall-title\">続きを読むには購入が必要です</div>"
     + "<div class=\"sc-paywall-list\">"
     + "<div class=\"sc-paywall-item\">✦ 最良のパートナー像（詳細）</div>"
-    + "<div class=\"sc-paywall-item\">✦ 未来の大運（全期間）</div>"
-    + "<div class=\"sc-paywall-item\">✦ 流年の詳細運勢</div>"
+    + "<div class=\"sc-paywall-item\">✦ 大運（現在以降の全期間）</div>"
+    + "<div class=\"sc-paywall-item\">✦ 流年の詳細運勢（"+y1+"年、"+y2+"年）</div>"
     + "</div>"
     + "<div class=\"sc-paywall-price\">¥500 <span>（税込）</span></div>"
     + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
@@ -407,10 +409,11 @@ function scDiagnose(){
     var daiuPaywallShown=false;
     dl.forEach(function(dd,i){
       var g=KG[dd.ki],ic=i===ci;
-      var isFuture=(dd.age>age);
-      if(isFuture && !scPaid){
+      // 現在の大運より未来のみ隠す（現在の大運は表示）
+      var isAfterCurrent=(i>ci);
+      if(isAfterCurrent && !scPaid){
         if(!daiuPaywallShown){
-          dh+=scGetPaywallHTML();
+          dh+=scGetPaywallHTML(ty+1,ty+2);
           daiuPaywallShown=true;
         }
         return;
@@ -430,22 +433,39 @@ function scDiagnose(){
 
     // 流年詳細
     var rdh="";
-    var ryunenPaywallShown=false;
     rs.forEach(function(r,i){
-      if(i>0 && !scPaid){
-        if(!ryunenPaywallShown){
-          rdh+=scGetPaywallHTML();
-          ryunenPaywallShown=true;
-        }
-        return;
+      if(i===0){
+        // 今年：全表示
+        rdh+="<div class=\"sc-section\"><h3>"+r.y+"年（今年）"+r.k+r.s+"年の運勢</h3>"
+          +"<p class=\"sc-desc\" style=\"margin-bottom:12px;\">"+r.d+"</p>"
+          +"<div class=\"ryunen-detail\">"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">❤️ 恋愛運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.l)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.l)+"</span></div>"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💼 仕事運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.w)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.w)+"</span></div>"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💰 金　運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.m)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.m)+"</span></div>"
+          +"</div></div>";
+      } else if(i===1 && !scPaid){
+        // 来年：冒頭のみ表示してペイウォール
+        var preview=r.d.substring(0,60)+"...";
+        rdh+="<div class=\"sc-section\"><h3>"+r.y+"年（来年）"+r.k+r.s+"年の運勢</h3>"
+          +"<p class=\"sc-desc\" style=\"margin-bottom:12px;filter:blur(0px)\">"+preview+"</p>"
+          +"<div class=\"sc-blur-content\" style=\"filter:blur(3px);pointer-events:none;user-select:none;opacity:0.5;\">"
+          +"<div class=\"ryunen-detail\">"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">❤️ 恋愛運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.l)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.l)+"</span></div>"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💼 仕事運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.w)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.w)+"</span></div>"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💰 金　運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.m)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.m)+"</span></div>"
+          +"</div></div>"
+          +scGetPaywallHTML(ty+1,ty+2)
+          +"</div>";
+      } else if(scPaid){
+        // 購入済み：全表示
+        rdh+="<div class=\"sc-section\"><h3>"+r.y+"年（"+(i===1?"来年":"再来年")+"）"+r.k+r.s+"年の運勢</h3>"
+          +"<p class=\"sc-desc\" style=\"margin-bottom:12px;\">"+r.d+"</p>"
+          +"<div class=\"ryunen-detail\">"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">❤️ 恋愛運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.l)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.l)+"</span></div>"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💼 仕事運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.w)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.w)+"</span></div>"
+          +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💰 金　運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.m)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.m)+"</span></div>"
+          +"</div></div>";
       }
-      rdh+="<div class=\"sc-section\"><h3>"+r.y+"年（"+(i===0?"今年":i===1?"来年":"再来年")+"）"+r.k+r.s+"年の運勢</h3>"
-        +"<p class=\"sc-desc\" style=\"margin-bottom:12px;\">"+r.d+"</p>"
-        +"<div class=\"ryunen-detail\">"
-        +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">❤️ 恋愛運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.l)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.l)+"</span></div>"
-        +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💼 仕事運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.w)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.w)+"</span></div>"
-        +"<div class=\"ryunen-row\"><span class=\"ryunen-label\">💰 金　運</span><div class=\"ryunen-bar-wrap\"><div class=\"ryunen-bar\" style=\"width:"+bw(r.m)+"\"></div></div><span class=\"ryunen-stars\">"+st(r.m)+"</span></div>"
-        +"</div></div>";
     });
 
     // 十神セクション（5項目）
