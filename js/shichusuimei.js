@@ -642,7 +642,7 @@ function scDiagnose(){
           +"<p class=\"sc-desc\">"+jsData.partnerDesc+"</p>"
         : "<div class=\"sc-blur-wrap\">"
           +"<div class=\"sc-blur-content\"><p class=\"sc-desc\">"+jsData.partnerDesc.substring(0,30)+"...</p></div>"
-          +scGetPaywallHTML()
+          +scGetPaywallHTML(ty+1,ty+2)
           +"</div>"
       )
       +"</div>"
