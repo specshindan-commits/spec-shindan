@@ -344,6 +344,143 @@ function scGetPaywallHTML(nextYear, nextNextYear) {
     + "</div>";
 }
 
+
+// ===== 詳細レポートHTML生成 =====
+function scGenerateReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJs,jsData,dl,ci,rs,sa,dg){
+  var genderStr = gender===0?"男性":"女性";
+  var today = new Date();
+  var dateStr = today.getFullYear()+"年"+(today.getMonth()+1)+"月"+today.getDate()+"日";
+
+  function pillarTd(p){
+    if(!p) return "<td style=\"text-align:center;padding:8px 4px;color:#ccc;\">─</td>";
+    var kg=KG[p.ki],sg=SG[p.si];
+    return "<td style=\"text-align:center;padding:8px 4px;\">"
+      +"<div style=\"font-size:1.3rem;font-weight:700;color:#7A675F;\">"+p.k+"</div>"
+      +"<div style=\"font-size:1.1rem;font-weight:700;color:#4A3B35;\">"+p.s+"</div>"
+      +"<div style=\"font-size:0.7rem;padding:2px 6px;border-radius:12px;display:inline-block;margin-top:3px;background:#E8F5E9;color:#2E7D32;\">"+kg+"</div>"
+      +"<div style=\"font-size:0.7rem;padding:2px 6px;border-radius:12px;display:inline-block;margin-top:2px;background:#E3F2FD;color:#1565C0;\">"+sg+"</div>"
+      +"</td>";
+  }
+
+  function st(n){return "★".repeat(n)+"☆".repeat(5-n);}
+  function bw(n){return (n/5*100)+"%";}
+
+  var mg2=Math.max.apply(null,Object.values(gc));
+  var gogyoRows="";
+  ["木","火","土","金","水"].forEach(function(g){
+    var cnt=gc[g];
+    var starCnt=mg2>0?Math.round(cnt/mg2*6):0;
+    var stars="";
+    for(var i=0;i<starCnt;i++)stars+="★";
+    for(var i=starCnt;i<6;i++)stars+="☆";
+    gogyoRows+="<tr><td style=\"padding:8px 12px;\">"+GE[g]+" "+g+"</td>"
+      +"<td style=\"padding:8px 12px;\"><div style=\"width:80px;height:10px;background:#F0E6E0;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;\">"
+      +"<div style=\"height:100%;border-radius:6px;background:"+GB[g]+";width:"+(mg2?cnt/mg2*100:0)+"%\"></div></div>"
+      +"<span style=\"color:"+GB[g]+";font-size:0.85rem;\">"+stars+"</span></td>"
+      +"<td style=\"padding:8px 12px;text-align:center;\">"+cnt+"</td></tr>";
+  });
+
+  var daiuRows="";
+  dl.forEach(function(dd,i){
+    var g=KG[dd.ki],ic=i===ci;
+    daiuRows+="<tr style=\""+(ic?"background:rgba(201,166,147,0.15);font-weight:700;":"")+"\">"
+      +"<td style=\"padding:8px 12px;\">"+dd.age+"〜"+(dd.age+9)+"歳"+(ic?" ▶ 現在":"")+  "</td>"
+      +"<td style=\"padding:8px 12px;\"><span style=\"font-size:0.75rem;padding:2px 6px;border-radius:10px;background:#E8F5E9;color:#2E7D32;margin-right:4px;\">"+g+"</span>"+dd.k+dd.s+"</td>"
+      +"<td style=\"padding:8px 12px;font-size:0.85rem;color:#666;\">"+DD[g]+"</td></tr>";
+  });
+
+  var ryunenRows="";
+  rs.forEach(function(r,i){
+    ryunenRows+="<tr style=\""+(i===0?"background:rgba(201,166,147,0.15);font-weight:700;":"")+"\">"
+      +"<td style=\"padding:8px 12px;\">"+r.y+"年"+(i===0?"（今年）":i===1?"（来年）":"（再来年）")+"</td>"
+      +"<td style=\"padding:8px 12px;\">"+r.k+r.s+"（"+r.g+"）</td>"
+      +"<td style=\"padding:8px 12px;\">❤️ "+st(r.l)+" 💼 "+st(r.w)+" 💰 "+st(r.m)+"</td>"
+      +"<td style=\"padding:8px 12px;font-size:0.83rem;color:#666;\">"+r.d+"</td></tr>";
+  });
+
+  var mk=KSK[dc.k],ms2=SSK[dc.s];
+
+  var html="<!DOCTYPE html><html lang=\"ja\"><head><meta charset=\"UTF-8\">"
+    +"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\">"
+    +"<title>四柱推命 詳細レポート｜"+y+"年"+m+"月"+d+"日生まれ</title>"
+    +"<style>"
+    +"body{font-family:serif;background:#F5EDE6;color:#4A3B35;margin:0;padding:0;}"
+    +"#wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px;}"
+    +".section{background:#FFF9F3;border:1px solid #E9D3D0;border-radius:16px;padding:20px;margin-bottom:16px;}"
+    +".section h2{font-size:1rem;color:#7A675F;border-bottom:1px solid #E9D3D0;padding-bottom:8px;margin-bottom:14px;text-align:center;letter-spacing:0.1em;}"
+    +".tag{background:linear-gradient(135deg,rgba(201,166,147,0.2),rgba(231,211,168,0.3));border:1px solid #E9D3D0;border-radius:20px;padding:5px 14px;font-size:0.82rem;color:#7A675F;font-weight:700;display:inline-block;margin:3px;}"
+    +"table{width:100%;border-collapse:collapse;font-size:0.88rem;}"
+    +"th{background:#F5EDE6;padding:8px 12px;text-align:left;font-size:0.8rem;color:#9A8880;border-bottom:1px solid #E9D3D0;}"
+    +"td{border-bottom:1px solid #F0E6E0;vertical-align:top;}"
+    +".desc{font-size:0.85rem;line-height:1.85;color:#4A3B35;}"
+    +".warn{background:#FFF3CD;border:1px solid #FFCA28;border-radius:12px;padding:16px;margin-bottom:20px;}"
+    +".warn-title{font-weight:700;color:#856404;margin-bottom:6px;}"
+    +".warn-desc{font-size:0.85rem;color:#856404;}"
+    +"</style></head><body><div id=\"wrap\">"
+    +"<div style=\"text-align:center;padding:20px 0 16px;\">"
+    +"<div style=\"font-size:1.6rem;font-weight:700;color:#7A675F;letter-spacing:0.1em;\">✦ 四柱推命 詳細レポート ✦</div>"
+    +"<div style=\"font-size:0.85rem;color:#9A8880;margin-top:6px;\">"+y+"年"+m+"月"+d+"日生まれ・"+genderStr+"・"+age+"歳｜鑑定日："+dateStr+"</div>"
+    +"</div>"
+    +"<div class=\"warn\">"
+    +"<div class=\"warn-title\">⚠️ 重要：このレポートを必ず保存してください</div>"
+    +"<div class=\"warn-desc\">このファイルを保存しないと詳細レポートを閲覧できなくなり、再度購入が必要になります。</div>"
+    +"</div>"
+    +"<div class=\"section\"><h2>✦ 命式（四柱） ✦</h2>"
+    +"<table><tr><th>年柱</th><th>月柱</th><th>日柱（主星）</th><th>時柱</th></tr>"
+    +"<tr>"+pillarTd(nc)+pillarTd(mc)+pillarTd(dc)+pillarTd(tc)+"</tr>"
+    +"<tr><td style=\"text-align:center;font-size:0.75rem;color:#9A8880;padding:4px;\">"+jsNen+"</td>"
+    +"<td style=\"text-align:center;font-size:0.75rem;color:#9A8880;padding:4px;\">"+jsMon+"</td>"
+    +"<td style=\"text-align:center;font-size:0.75rem;color:#7A675F;font-weight:700;padding:4px;\">日主</td>"
+    +"<td style=\"text-align:center;font-size:0.75rem;color:#9A8880;padding:4px;\">"+(jsJi||"─")+"</td></tr>"
+    +"</table></div>"
+    +"<div class=\"section\"><h2>✦ 五行バランス ✦</h2>"
+    +"<table><tr><th>五行</th><th>強さ</th><th>個数</th></tr>"+gogyoRows+"</table>"
+    +"<p class=\"desc\" style=\"margin-top:12px;\">"+GE[dg]+dg+"の気が最も強く、あなたの人生の中心的なエネルギーとなっています。</p>"
+    +"</div>"
+    +"<div class=\"section\"><h2>✦ 基本性格・才能（日干："+dc.k+"） ✦</h2>"
+    +"<div style=\"margin-bottom:10px;\">"+mk.t.map(function(t){return "<span class=\"tag\">"+t+"</span>";}).join("")+"</div>"
+    +"<p class=\"desc\">"+mk.d+"</p></div>"
+    +"<div class=\"section\"><h2>✦ 日支（"+dc.s+"）からみる気質・恋愛観 ✦</h2>"
+    +"<div style=\"margin-bottom:10px;\">"+ms2.t.map(function(t){return "<span class=\"tag\">"+t+"</span>";}).join("")+"</div>"
+    +"<p class=\"desc\">"+ms2.d+"</p></div>"
+    +"<div class=\"section\"><h2>✦ あなたの才能・魂の目的（"+mainJs+"） ✦</h2>"
+    +"<p class=\"desc\">"+jsData.nature+"</p>"
+    +"<p class=\"desc\" style=\"margin-top:10px;\">"+jsData.work+"</p></div>"
+    +"<div class=\"section\"><h2>✦ 恋愛傾向とパートナー像 ✦</h2>"
+    +"<p class=\"desc\">"+jsData.love+"</p>"
+    +"<p style=\"font-weight:700;color:#7A675F;margin:12px 0 6px;\">最良のパートナー像</p>"
+    +"<span class=\"tag\">"+jsData.partnerType+"</span>"
+    +"<p class=\"desc\" style=\"margin-top:8px;\">"+jsData.partnerDesc+"</p></div>"
+    +"<div class=\"section\"><h2>✦ あなたの運気を高める重要人物 ✦</h2>"
+    +"<span class=\"tag\">"+jsData.supportType+"</span>"
+    +"<p class=\"desc\" style=\"margin-top:8px;\">"+jsData.supportDesc+"</p></div>"
+    +"<div class=\"section\"><h2>✦ 運勢の流れとあなたへの指針 ✦</h2>"
+    +"<p class=\"desc\">"+jsData.guidance+"</p></div>"
+    +"<div class=\"section\"><h2>✦ 起こしやすいミスと解決方法 ✦</h2>"
+    +"<p class=\"desc\">"+jsData.mistake+"</p></div>"
+    +"<div class=\"section\"><h2>✦ 大運（10年サイクル） ✦</h2>"
+    +"<p class=\"desc\" style=\"margin-bottom:12px;\">"+sa+"歳から大運が始まります。</p>"
+    +"<table><tr><th>年齢</th><th>大運</th><th>運勢</th></tr>"+daiuRows+"</table></div>"
+    +"<div class=\"section\"><h2>✦ 流年（年ごとの運気） ✦</h2>"
+    +"<table><tr><th>年</th><th>干支</th><th>運勢スコア</th><th>概要</th></tr>"+ryunenRows+"</table></div>"
+    +"<div style=\"text-align:center;padding:20px 0;font-size:0.8rem;color:#9A8880;\">spec-shindan.com ｜ 四柱推命鑑定レポート</div>"
+    +"</div></body></html>";
+  return html;
+}
+
+function scDownloadReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJs,jsData,dl,ci,rs,sa,dg){
+  var html = scGenerateReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJs,jsData,dl,ci,rs,sa,dg);
+  var blob = new Blob([html], {type:"text/html;charset=utf-8"});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = "四柱推命レポート_"+y+"年"+m+"月"+d+"日.html";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function scPillar(p){
   if(!p)return "<td><div class=\"meishiki-kan\" style=\"color:#ccc\">&#8212;</div><div class=\"meishiki-shi\" style=\"color:#ccc\">&#8212;</div></td>";
   var kg=KG[p.ki],sg=SG[p.si];
@@ -497,7 +634,7 @@ function scDiagnose(){
     var jsHtml="<div class=\"sc-section\"><h3>✦ あなたの才能・魂の目的（"+mainJs+"） ✦</h3>"
       +"<p class=\"sc-desc\">"+jsData.nature+"</p>"
       +"<p class=\"sc-desc\" style=\"margin-top:10px;\">"+jsData.work+"</p></div>"
-      +"<div class=\"sc-section\"><h3>✦ 恋愛傾向とパートナー像 ✦</h3>"
+      +"<div class=\"sc-section\" id=\"sc-partner-section\"><h3>✦ 恋愛傾向とパートナー像 ✦</h3>"
       +"<p class=\"sc-desc\">"+jsData.love+"</p>"
       +"<p class=\"sc-desc\" style=\"margin-top:14px;font-weight:700;color:var(--primary);\">最良のパートナー像</p>"
       +(scPaid
@@ -517,7 +654,17 @@ function scDiagnose(){
       +"<div class=\"sc-section\"><h3>✦ 起こしやすいミスと解決方法 ✦</h3>"
       +"<p class=\"sc-desc\">"+jsData.mistake+"</p></div>";
 
-    res.innerHTML="<div class=\"sc-title-block\"><div class=\"sc-name\">"+y+"年"+m+"月"+d+"日生まれ</div>"
+    // 決済完了後：レポートダウンロードボタンと自動スクロール
+    var paidBanner="";
+    if(scPaid){
+      paidBanner="<div class=\"sc-paid-banner\">"
+        +"<div class=\"sc-paid-banner-title\">⚠️ 重要：この詳細レポートを必ず保存してください</div>"
+        +"<div class=\"sc-paid-banner-desc\">このファイルを保存しないと詳細レポートを閲覧できなくなり、再度購入が必要になります。</div>"
+        +"<button class=\"sc-paid-btn\" id=\"scDownloadBtn\">📄 詳細レポートをHTMLファイルで保存する</button>"
+        +"</div>";
+    }
+
+    res.innerHTML=paidBanner+"<div class=\"sc-title-block\"><div class=\"sc-name\">"+y+"年"+m+"月"+d+"日生まれ</div>"
       +"<div class=\"sc-sub\">"+(scG===0?"男性":"女性")+"・"+age+"歳の命式鑑定</div></div>"
       +"<div class=\"sc-section\"><h3>✦ 命式（四柱） ✦</h3>"
       +"<table class=\"meishiki-table\"><tr><th>年柱</th><th>月柱</th><th>日柱（主星）</th><th>時柱</th></tr>"
@@ -554,6 +701,23 @@ function scDiagnose(){
         scShare(parseInt(this.getAttribute("data-y")),parseInt(this.getAttribute("data-m")),
           parseInt(this.getAttribute("data-d")),this.getAttribute("data-ks"));
       });
+    }
+    // ダウンロードボタン
+    var dlBtn=document.getElementById("scDownloadBtn");
+    if(dlBtn){
+      dlBtn.addEventListener("click",function(){
+        scDownloadReport(y,m,d,scG,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJs,jsData,dl,ci,rs,sa,dg);
+      });
+    }
+    // 決済完了後：パートナー像セクションへ自動スクロール
+    if(scPaid){
+      var params2=new URLSearchParams(window.location.search);
+      if(params2.get("paid_sc")==="1"){
+        setTimeout(function(){
+          var partnerEl=document.getElementById("sc-partner-section");
+          if(partnerEl) partnerEl.scrollIntoView({behavior:"smooth",block:"start"});
+        },800);
+      }
     }
   },600);
 }
