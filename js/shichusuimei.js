@@ -324,7 +324,12 @@ function scRunAfterSave() {
         if(savedBv){
           document.getElementById("scBirthday").value = savedBv;
           if(savedG !== null) scSetGender(parseInt(savedG));
-          setTimeout(function(){ scDiagnose(); }, 200);
+          setTimeout(function(){
+          // URLからpaid_scパラメータを削除（リロード対策）
+          var cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          scDiagnose();
+        }, 200);
         }
       }
     }
