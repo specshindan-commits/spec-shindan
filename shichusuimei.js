@@ -331,15 +331,7 @@ function scRunAfterSave() {
   });
 }
 
-// 入力内容がlocalStorageの購入時データと一致するか確認
-function scCheckInputMatch(bv, gender) {
-  if(!scPaid) return false;
-  var savedBv = localStorage.getItem("sc_last_birthday");
-  var savedG = localStorage.getItem("sc_last_gender");
-  if(savedBv !== bv) return false;
-  if(savedG !== null && parseInt(savedG) !== gender) return false;
-  return true;
-}
+
 
 // token保存完了を待ってから検証
 (function waitForSave(){
@@ -522,15 +514,19 @@ function scDiagnose(){
   var res=document.getElementById("sc-result");
   res.style.display="block";
   res.innerHTML="<div class=\"sc-loading\">鑑定中</div>";
+  // 購入済みの場合、入力が購入時と異なればscPaidをリセット
+  if(scPaid){
+    var savedBv = localStorage.getItem("sc_last_birthday");
+    var savedG = localStorage.getItem("sc_last_gender");
+    if(savedBv && (savedBv !== bv || (savedG !== null && parseInt(savedG) !== scG))){
+      scPaid = false;
+    }
+  }
+  // tokenを確保
+  scGetToken();
   // 鑑定情報をlocalStorageに保存（決済後の自動復元用）
   localStorage.setItem("sc_last_birthday", bv);
   localStorage.setItem("sc_last_gender", String(scG));
-  // tokenを確保
-  scGetToken();
-  // 入力が購入時と異なる場合はscPaidをリセット
-  if(scPaid && !scCheckInputMatch(bv, scG)){
-    scPaid = false;
-  }
   setTimeout(function(){
     var ps=bv.split("-");
     var y=parseInt(ps[0]),m=parseInt(ps[1]),d=parseInt(ps[2]);
