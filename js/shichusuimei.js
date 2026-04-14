@@ -324,7 +324,7 @@ function scRunAfterSave() {
         if(savedBv){
           document.getElementById("scBirthday").value = savedBv;
           if(savedG !== null) scSetGender(parseInt(savedG));
-          setTimeout(function(){ scDiagnose(); }, 500);
+          setTimeout(function(){ scDiagnose(); }, 200);
         }
       }
     }
@@ -344,7 +344,7 @@ function scRunAfterSave() {
   // paid_sc=1の場合：WP HTMLのJSONP保存を待つ
   // _scSaveReadyがtrueになるか、最大4秒待つ
   var waited = 0;
-  var maxWait = 4000;
+  var maxWait = 1000;
   var interval = 100;
   (function waitForSave(){
     if(window._scSaveReady){
@@ -770,9 +770,9 @@ function scDiagnose(){
       var params2=new URLSearchParams(window.location.search);
       if(params2.get("paid_sc")==="1"){
         setTimeout(function(){
-          var partnerEl=document.getElementById("sc-partner-section");
-          if(partnerEl) partnerEl.scrollIntoView({behavior:"smooth",block:"start"});
-        },800);
+          var bannerEl=document.querySelector(".sc-paid-banner");
+          if(bannerEl) bannerEl.scrollIntoView({behavior:"smooth",block:"start"});
+        },600);
       }
     }
   },600);
