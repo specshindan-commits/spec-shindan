@@ -313,22 +313,32 @@ function scCheckToken() {
 }
 
 // ページ読み込み時にトークン確認・決済完了後は自動鑑定
-scCheckToken().then(function(paid) {
-  if (paid) {
-    scPaid = true;
-    // 決済完了後（URLにpaid_sc=1がある場合）は保存データで自動鑑定
-    var params = new URLSearchParams(window.location.search);
-    if(params.get("paid_sc") === "1"){
-      var savedBv = localStorage.getItem("sc_last_birthday");
-      var savedG = localStorage.getItem("sc_last_gender");
-      if(savedBv){
-        document.getElementById("scBirthday").value = savedBv;
-        if(savedG !== null) scSetGender(parseInt(savedG));
-        setTimeout(function(){ scDiagnose(); }, 500);
+function scRunAfterSave() {
+  scCheckToken().then(function(paid) {
+    if (paid) {
+      scPaid = true;
+      var params = new URLSearchParams(window.location.search);
+      if(params.get("paid_sc") === "1"){
+        var savedBv = localStorage.getItem("sc_last_birthday");
+        var savedG = localStorage.getItem("sc_last_gender");
+        if(savedBv){
+          document.getElementById("scBirthday").value = savedBv;
+          if(savedG !== null) scSetGender(parseInt(savedG));
+          setTimeout(function(){ scDiagnose(); }, 500);
+        }
       }
     }
+  });
+}
+
+// token保存完了を待ってから検証
+(function waitForSave(){
+  if(window._scSaveReady){
+    scRunAfterSave();
+  } else {
+    setTimeout(waitForSave, 100);
   }
-});
+})();
 
 function scGetPaywallHTML(nextYear, nextNextYear) {
   var y1 = nextYear || (new Date().getFullYear() + 1);
