@@ -280,24 +280,19 @@ var SSK={
 var SC_GAS_URL = "https://script.google.com/macros/s/AKfycbxFjlFuVsLislzDc_qDcAuxuJ-BsQhExNYCx2Gz47EcdoN6S3Ymqcy4YI6u__2eETwY/exec";
 var SC_STRIPE_URL = "https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004";
 var scPaid = false;
-var scToken = ""; // グローバルtoken
-
-// tokenを生成
-function scGenerateToken() {
+// tokenをlocalStorageから取得（なければ新規生成）
+function scGetToken() {
   var t = localStorage.getItem("sc_token");
-  if (!t) {
+  if (!t || t.indexOf("{") >= 0 || t.length < 8) {
     t = "sc_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
     localStorage.setItem("sc_token", t);
   }
-  scToken = t; // グローバルに保存
   return t;
 }
 
 function scCheckToken() {
-  var token = localStorage.getItem("sc_token");
+  var token = scGetToken();
   if (!token) return Promise.resolve(false);
-  // {CLIENT_REFERENCE_ID}がそのまま入っていたら無効
-  if (token.indexOf("{") >= 0) return Promise.resolve(false);
   return new Promise(function(resolve) {
     var script = document.createElement("script");
     var cb = "scTokenCb_" + Date.now();
@@ -317,30 +312,49 @@ function scCheckToken() {
   });
 }
 
-// ページ読み込み時にtokenを初期化
-scToken = scGenerateToken();
-
 // ページ読み込み時にトークン確認・決済完了後は自動鑑定
-scCheckToken().then(function(paid) {
-  if (paid) {
-    scPaid = true;
-    // 決済完了後（URLにpaid_sc=1がある場合）は保存データで自動鑑定
-    var params = new URLSearchParams(window.location.search);
-    if(params.get("paid_sc") === "1"){
-      var savedBv = localStorage.getItem("sc_last_birthday");
-      var savedG = localStorage.getItem("sc_last_gender");
-      if(savedBv){
-        document.getElementById("scBirthday").value = savedBv;
-        if(savedG !== null) scSetGender(parseInt(savedG));
-        setTimeout(function(){ scDiagnose(); }, 500);
+function scRunAfterSave() {
+  scCheckToken().then(function(paid) {
+    if (paid) {
+      scPaid = true;
+      var params = new URLSearchParams(window.location.search);
+      if(params.get("paid_sc") === "1"){
+        var savedBv = localStorage.getItem("sc_last_birthday");
+        var savedG = localStorage.getItem("sc_last_gender");
+        if(savedBv){
+          document.getElementById("scBirthday").value = savedBv;
+          if(savedG !== null) scSetGender(parseInt(savedG));
+          setTimeout(function(){ scDiagnose(); }, 500);
+        }
       }
     }
+  });
+}
+
+// 入力内容がlocalStorageの購入時データと一致するか確認
+function scCheckInputMatch(bv, gender) {
+  if(!scPaid) return false;
+  var savedBv = localStorage.getItem("sc_last_birthday");
+  var savedG = localStorage.getItem("sc_last_gender");
+  if(savedBv !== bv) return false;
+  if(savedG !== null && parseInt(savedG) !== gender) return false;
+  return true;
+}
+
+// token保存完了を待ってから検証
+(function waitForSave(){
+  if(window._scSaveReady){
+    scRunAfterSave();
+  } else {
+    setTimeout(waitForSave, 100);
   }
-});
+})();
 
 function scGetPaywallHTML(nextYear, nextNextYear) {
   var y1 = nextYear || (new Date().getFullYear() + 1);
   var y2 = nextNextYear || (new Date().getFullYear() + 2);
+  // tokenをlocalStorageから直接取得
+  var tok = scGetToken();
   return "<div class=\"sc-paywall\">"
     + "<div class=\"sc-paywall-lock\">🔒</div>"
     + "<div class=\"sc-paywall-title\">続きを読むには購入が必要です</div>"
@@ -350,7 +364,7 @@ function scGetPaywallHTML(nextYear, nextNextYear) {
     + "<div class=\"sc-paywall-item\">✦ 流年の詳細運勢（"+y1+"年、"+y2+"年）</div>"
     + "</div>"
     + "<div class=\"sc-paywall-price\">¥500 <span>（税込）</span></div>"
-    + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004?client_reference_id="+scToken+"\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
+    + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004?client_reference_id="+tok+"\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
     + "<div class=\"sc-paywall-note\">※ クレジットカード決済（Stripe）｜安全・即時閲覧可能</div>"
     + "</div>";
 }
@@ -384,11 +398,12 @@ function scGenerateReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJ
     var stars="";
     for(var i=0;i<starCnt;i++)stars+="★";
     for(var i=starCnt;i<6;i++)stars+="☆";
-    gogyoRows+="<tr><td style=\"padding:8px 12px;\">"+GE[g]+" "+g+"</td>"
-      +"<td style=\"padding:8px 12px;\"><div style=\"width:80px;height:10px;background:#F0E6E0;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;\">"
+    gogyoRows+="<div style=\"display:flex;align-items:center;gap:8px;margin-bottom:10px;\">"
+      +"<div style=\"font-size:0.9rem;color:#4A3B35;width:48px;flex-shrink:0;\">"+GE[g]+" "+g+"</div>"
+      +"<div style=\"width:100px;height:10px;background:#F0E6E0;border-radius:6px;overflow:hidden;flex-shrink:0;\">"
       +"<div style=\"height:100%;border-radius:6px;background:"+GB[g]+";width:"+(mg2?cnt/mg2*100:0)+"%\"></div></div>"
-      +"<span style=\"color:"+GB[g]+";font-size:0.85rem;\">"+stars+"</span></td>"
-      +"<td style=\"padding:8px 12px;text-align:center;\">"+cnt+"</td></tr>";
+      +"<div style=\"font-size:0.85rem;color:"+GB[g]+";white-space:nowrap;\">"+stars+"</div>"
+      +"</div>";
   });
 
   var daiuRows="";
@@ -445,7 +460,7 @@ function scGenerateReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJ
     +"<td style=\"text-align:center;font-size:0.75rem;color:#9A8880;padding:4px;\">"+(jsJi||"─")+"</td></tr>"
     +"</table></div>"
     +"<div class=\"section\"><h2>✦ 五行バランス ✦</h2>"
-    +"<table><tr><th>五行</th><th>強さ</th><th>個数</th></tr>"+gogyoRows+"</table>"
+    +"<div style=\"margin-top:8px;\">"+gogyoRows+"</div>"
     +"<p class=\"desc\" style=\"margin-top:12px;\">"+GE[dg]+dg+"の気が最も強く、あなたの人生の中心的なエネルギーとなっています。</p>"
     +"</div>"
     +"<div class=\"section\"><h2>✦ 基本性格・才能（日干："+dc.k+"） ✦</h2>"
@@ -510,8 +525,12 @@ function scDiagnose(){
   // 鑑定情報をlocalStorageに保存（決済後の自動復元用）
   localStorage.setItem("sc_last_birthday", bv);
   localStorage.setItem("sc_last_gender", String(scG));
-  // tokenを更新
-  scToken = scGenerateToken();
+  // tokenを確保
+  scGetToken();
+  // 入力が購入時と異なる場合はscPaidをリセット
+  if(scPaid && !scCheckInputMatch(bv, scG)){
+    scPaid = false;
+  }
   setTimeout(function(){
     var ps=bv.split("-");
     var y=parseInt(ps[0]),m=parseInt(ps[1]),d=parseInt(ps[2]);
