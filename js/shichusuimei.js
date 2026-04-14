@@ -331,13 +331,43 @@ function scRunAfterSave() {
   });
 }
 
-// token保存完了を待ってから検証
-(function waitForSave(){
-  if(window._scSaveReady){
+
+
+// token保存完了を待ってから検証（paid_sc=1の場合のみ）
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  if(params.get("paid_sc") !== "1"){
+    // 決済完了でない場合はすぐにチェック
     scRunAfterSave();
-  } else {
-    setTimeout(waitForSave, 100);
+    return;
   }
+  // paid_sc=1の場合：WP HTMLのJSONP保存を待つ
+  // _scSaveReadyがtrueになるか、最大4秒待つ
+  var waited = 0;
+  var maxWait = 4000;
+  var interval = 100;
+  (function waitForSave(){
+    if(window._scSaveReady){
+      scRunAfterSave();
+    } else if(waited >= maxWait){
+      // タイムアウト：自分でGASに保存してから実行
+      var token = localStorage.getItem("sc_token");
+      if(token && token.indexOf("{") < 0){
+        var s = document.createElement("script");
+        var cb = "scFallbackCb_" + Date.now();
+        window[cb] = function(){ delete window[cb]; scRunAfterSave(); };
+        s.onerror = function(){ scRunAfterSave(); };
+        s.src = "https://script.google.com/macros/s/AKfycbxFjlFuVsLislzDc_qDcAuxuJ-BsQhExNYCx2Gz47EcdoN6S3Ymqcy4YI6u__2eETwY/exec"
+          + "?type=save_sc_token&token=" + encodeURIComponent(token) + "&callback=" + cb;
+        document.head.appendChild(s);
+      } else {
+        scRunAfterSave();
+      }
+    } else {
+      waited += interval;
+      setTimeout(waitForSave, interval);
+    }
+  })();
 })();
 
 function scGetPaywallHTML(nextYear, nextNextYear) {
@@ -388,11 +418,12 @@ function scGenerateReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJ
     var stars="";
     for(var i=0;i<starCnt;i++)stars+="★";
     for(var i=starCnt;i<6;i++)stars+="☆";
-    gogyoRows+="<tr><td style=\"padding:8px 12px;\">"+GE[g]+" "+g+"</td>"
-      +"<td style=\"padding:8px 12px;\"><div style=\"width:80px;height:10px;background:#F0E6E0;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;\">"
+    gogyoRows+="<div style=\"display:flex;align-items:center;gap:8px;margin-bottom:10px;\">"
+      +"<div style=\"font-size:0.9rem;color:#4A3B35;width:48px;flex-shrink:0;\">"+GE[g]+" "+g+"</div>"
+      +"<div style=\"width:100px;height:10px;background:#F0E6E0;border-radius:6px;overflow:hidden;flex-shrink:0;\">"
       +"<div style=\"height:100%;border-radius:6px;background:"+GB[g]+";width:"+(mg2?cnt/mg2*100:0)+"%\"></div></div>"
-      +"<span style=\"color:"+GB[g]+";font-size:0.85rem;\">"+stars+"</span></td>"
-      +"<td style=\"padding:8px 12px;text-align:center;\">"+cnt+"</td></tr>";
+      +"<div style=\"font-size:0.85rem;color:"+GB[g]+";white-space:nowrap;\">"+stars+"</div>"
+      +"</div>";
   });
 
   var daiuRows="";
@@ -449,7 +480,7 @@ function scGenerateReport(y,m,d,gender,age,nc,mc,dc,tc,gc,jsNen,jsMon,jsJi,mainJ
     +"<td style=\"text-align:center;font-size:0.75rem;color:#9A8880;padding:4px;\">"+(jsJi||"─")+"</td></tr>"
     +"</table></div>"
     +"<div class=\"section\"><h2>✦ 五行バランス ✦</h2>"
-    +"<table><tr><th>五行</th><th>強さ</th><th>個数</th></tr>"+gogyoRows+"</table>"
+    +"<div style=\"margin-top:8px;\">"+gogyoRows+"</div>"
     +"<p class=\"desc\" style=\"margin-top:12px;\">"+GE[dg]+dg+"の気が最も強く、あなたの人生の中心的なエネルギーとなっています。</p>"
     +"</div>"
     +"<div class=\"section\"><h2>✦ 基本性格・才能（日干："+dc.k+"） ✦</h2>"
@@ -511,11 +542,19 @@ function scDiagnose(){
   var res=document.getElementById("sc-result");
   res.style.display="block";
   res.innerHTML="<div class=\"sc-loading\">鑑定中</div>";
+  // 購入済みの場合、入力が購入時と異なればscPaidをリセット
+  if(scPaid){
+    var savedBv = localStorage.getItem("sc_last_birthday");
+    var savedG = localStorage.getItem("sc_last_gender");
+    if(savedBv && (savedBv !== bv || (savedG !== null && parseInt(savedG) !== scG))){
+      scPaid = false;
+    }
+  }
+  // tokenを確保
+  scGetToken();
   // 鑑定情報をlocalStorageに保存（決済後の自動復元用）
   localStorage.setItem("sc_last_birthday", bv);
   localStorage.setItem("sc_last_gender", String(scG));
-  // tokenを確保
-  scGetToken();
   setTimeout(function(){
     var ps=bv.split("-");
     var y=parseInt(ps[0]),m=parseInt(ps[1]),d=parseInt(ps[2]);
