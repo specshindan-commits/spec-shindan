@@ -280,25 +280,19 @@ var SSK={
 var SC_GAS_URL = "https://script.google.com/macros/s/AKfycbxFjlFuVsLislzDc_qDcAuxuJ-BsQhExNYCx2Gz47EcdoN6S3Ymqcy4YI6u__2eETwY/exec";
 var SC_STRIPE_URL = "https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004";
 var scPaid = false;
-var scToken = ""; // グローバルtoken
-
-// tokenを生成
-function scGenerateToken() {
+// tokenをlocalStorageから取得（なければ新規生成）
+function scGetToken() {
   var t = localStorage.getItem("sc_token");
-  // 無効なtoken（テンプレート変数など）は破棄して新規生成
   if (!t || t.indexOf("{") >= 0 || t.length < 8) {
     t = "sc_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
     localStorage.setItem("sc_token", t);
   }
-  scToken = t; // グローバルに保存
   return t;
 }
 
 function scCheckToken() {
-  var token = localStorage.getItem("sc_token");
+  var token = scGetToken();
   if (!token) return Promise.resolve(false);
-  // {CLIENT_REFERENCE_ID}がそのまま入っていたら無効
-  if (token.indexOf("{") >= 0) return Promise.resolve(false);
   return new Promise(function(resolve) {
     var script = document.createElement("script");
     var cb = "scTokenCb_" + Date.now();
@@ -317,9 +311,6 @@ function scCheckToken() {
     setTimeout(function() { resolve(false); }, 5000);
   });
 }
-
-// ページ読み込み時にtokenを初期化
-scToken = scGenerateToken();
 
 // ページ読み込み時にトークン確認・決済完了後は自動鑑定
 scCheckToken().then(function(paid) {
@@ -343,12 +334,7 @@ function scGetPaywallHTML(nextYear, nextNextYear) {
   var y1 = nextYear || (new Date().getFullYear() + 1);
   var y2 = nextNextYear || (new Date().getFullYear() + 2);
   // tokenをlocalStorageから直接取得
-  var tok = localStorage.getItem("sc_token") || "";
-  if(!tok || tok.indexOf("{") >= 0){
-    tok = "sc_" + Date.now() + "_" + Math.random().toString(36).substr(2,9);
-    localStorage.setItem("sc_token", tok);
-    scToken = tok;
-  }
+  var tok = scGetToken();
   return "<div class=\"sc-paywall\">"
     + "<div class=\"sc-paywall-lock\">🔒</div>"
     + "<div class=\"sc-paywall-title\">続きを読むには購入が必要です</div>"
@@ -518,8 +504,8 @@ function scDiagnose(){
   // 鑑定情報をlocalStorageに保存（決済後の自動復元用）
   localStorage.setItem("sc_last_birthday", bv);
   localStorage.setItem("sc_last_gender", String(scG));
-  // tokenを更新
-  scToken = scGenerateToken();
+  // tokenを確保
+  scGetToken();
   setTimeout(function(){
     var ps=bv.split("-");
     var y=parseInt(ps[0]),m=parseInt(ps[1]),d=parseInt(ps[2]);
