@@ -390,7 +390,7 @@ function scGetPaywallHTML(nextYear, nextNextYear) {
     + "</div>"
     + "<div class=\"sc-paywall-price\">¥500 <span>（税込）</span></div>"
     + "<a href=\"https://buy.stripe.com/bJe8wJ4O12evf6ffKBes004?client_reference_id="+tok+"\" class=\"sc-paywall-btn\" target=\"_blank\">💳 500円で続きを読む</a>"
-    + "<div class=\"sc-paywall-note\">※ クレジットカード決済（Stripe）｜安全・即時閲覧可能</div>"
+    + "<div class=\"sc-paywall-note\">※ クレジットカード決済（Stripe）<br>安全・即時閲覧可能</div>"
     + "</div>";
 }
 
