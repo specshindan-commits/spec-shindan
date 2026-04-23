@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── 見出しタイピングアニメーション ──
 (function() {
-  var TYPE_SPEED = 50;
+  var TYPESPEED = 50;
 
   function buildHeading(el) {
     var raw = el.getAttribute('data-lines') || '';
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
           spanIndex++;
           setTimeout(typeNext, 80);
         }
-      }, TYPE_SPEED);
+      }, TYPESPEED);
     }
     typeNext();
   }
